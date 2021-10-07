@@ -5,6 +5,8 @@
 
 #define MAX_FILE_SIZE     4096        // for simplification
 #define ENCRYPTED_FILE_SUFFIX   ".enc"
+#define END_BYTE   0x10
+#define PAD_BYTE    0x00
 //#define PATH_MAX                 256        // for simplification
 
 typedef struct f_data{
@@ -72,16 +74,18 @@ F_DATA ReadFile(char *InputFilename){
 
 
 F_DATA EncodeData(F_DATA DataToEncode, BYTE key[], int keysize){
-    //here we encode
     F_DATA      EncryptedData;  
     WORD        key_schedule[60];
     BYTE        *new_data; 
     BYTE        *enc_buf; 
     int         nl;
+    int         ti;
 
     //length of padded data
     nl = DataToEncode.Length;
-    //nl++;
+    ti = DataToEncode.Length;
+    
+    nl++;
     while(nl%16){
         nl++;
     }
@@ -95,10 +99,21 @@ F_DATA EncodeData(F_DATA DataToEncode, BYTE key[], int keysize){
     //copy old data to new data holder
     memcpy(new_data, DataToEncode.Data, DataToEncode.Length);
 
+    //added padded bytes to new_data
+    *(new_data+ti) = END_BYTE;
+    ti++;
+    while(ti<nl){
+        *(new_data+ti) = PAD_BYTE;
+        ti++;
+    }
+
     aes_key_setup(key, key_schedule, keysize);
     aes_encrypt(new_data, enc_buf, key_schedule, keysize);
             
     memcpy(EncryptedData.Data, enc_buf, nl);
+
+    printf("original length is: %i\n", DataToEncode.Length);
+    printf("new length is: %i\n", nl);
 
        
     return EncryptedData;
@@ -106,22 +121,33 @@ F_DATA EncodeData(F_DATA DataToEncode, BYTE key[], int keysize){
 
 
 F_DATA DecodeData(F_DATA DataToDecode, BYTE key[], int keysize){
-    //here we encode
     F_DATA      ClearData;  
     WORD        key_schedule[60];
     BYTE        *enc_buf;
+    int         ol;
+    char        cc;
 
-    //Pad data to be a multiple of 16  
-
-    //malloc memory to store  
+    //malloc memory to store decoded 
     enc_buf = (BYTE *) malloc (DataToDecode.Length);
-    ClearData.Data = (char *) malloc (DataToDecode.Length);
-    ClearData.Length = DataToDecode.Length;    
-    
-    aes_key_setup(key, key_schedule, keysize);    
+    ol = DataToDecode.Length;
+
+    aes_key_setup(key, key_schedule, keysize);   
     aes_decrypt(DataToDecode.Data, enc_buf, key_schedule, keysize);
 
-    memcpy(ClearData.Data, enc_buf, DataToDecode.Length);
+    cc = *(enc_buf+ol-1);
+    while(cc != END_BYTE){
+        ol--;
+        cc = *(enc_buf+ol-1);
+    }
+    ol--;    
+    
+    ClearData.Data = (char *) malloc (ol);
+    ClearData.Length = ol;
+
+    memcpy(ClearData.Data, enc_buf, ol);
+
+    printf("received length is: %i\n", DataToDecode.Length);
+    printf("computed original length is: %i\n", ol);
     
     return ClearData;
 }
