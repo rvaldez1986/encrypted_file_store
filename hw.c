@@ -75,16 +75,30 @@ F_DATA EncodeData(F_DATA DataToEncode, BYTE key[], int keysize){
     //here we encode
     F_DATA      EncryptedData;  
     WORD        key_schedule[60];
+    BYTE        *new_data; 
     BYTE        *enc_buf; 
+    int         nl;
 
-    enc_buf = (BYTE *) malloc (DataToEncode.Length);
-    EncryptedData.Data = (char *) malloc (DataToEncode.Length);
-    EncryptedData.Length = DataToEncode.Length;  
+    //length of padded data
+    nl = DataToEncode.Length;
+    //nl++;
+    while(nl%16){
+        nl++;
+    }
+
+    //malloc memory to store padded data  
+    new_data = (BYTE *) malloc (nl);
+    enc_buf = (BYTE *) malloc (nl);
+    EncryptedData.Data = (char *) malloc (nl);
+    EncryptedData.Length = nl; 
+
+    //copy old data to new data holder
+    memcpy(new_data, DataToEncode.Data, DataToEncode.Length);
 
     aes_key_setup(key, key_schedule, keysize);
-    aes_encrypt(DataToEncode.Data, enc_buf, key_schedule, keysize);
+    aes_encrypt(new_data, enc_buf, key_schedule, keysize);
             
-    memcpy(EncryptedData.Data, enc_buf, DataToEncode.Length);
+    memcpy(EncryptedData.Data, enc_buf, nl);
 
        
     return EncryptedData;
