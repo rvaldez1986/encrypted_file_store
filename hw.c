@@ -75,9 +75,10 @@ F_DATA EncodeData(F_DATA DataToEncode, BYTE key[], int keysize){
     //here we encode
     F_DATA      EncryptedData;  
     WORD        key_schedule[60];
-    BYTE        enc_buf[16];   
+    //BYTE        enc_buf[16]; 
+    BYTE        *enc_buf; 
 
-    EncryptedData.Data = (char *) malloc (DataToEncode.Length);
+    EncryptedData.Data = (BYTE *) malloc (DataToEncode.Length);
     EncryptedData.Length = DataToEncode.Length;  
 
     aes_key_setup(key, key_schedule, keysize);
@@ -94,11 +95,13 @@ F_DATA DecodeData(F_DATA DataToDecode, BYTE key[], int keysize){
     //here we encode
     F_DATA      ClearData;  
     WORD        key_schedule[60];
-    BYTE        enc_buf[16];
+    //BYTE        enc_buf[16];
+    BYTE        *enc_buf;
 
-    //Pad data to be a multiple of 16    
-    
+    //Pad data to be a multiple of 16  
 
+    //malloc memory to store  
+    enc_buf = (BYTE *) malloc (DataToDecode.Length);
     ClearData.Data = (char *) malloc (DataToDecode.Length);
     ClearData.Length = DataToDecode.Length;    
     
