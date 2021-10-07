@@ -75,8 +75,7 @@ F_DATA EncodeData(F_DATA DataToEncode, BYTE key[], int keysize){
     //here we encode
     F_DATA      EncryptedData;  
     WORD        key_schedule[60];
-    BYTE        enc_buf[16];
-    BYTE        enc_buf2[16];
+    BYTE        enc_buf[16];   
 
     EncryptedData.Data = (char *) malloc (DataToEncode.Length);
     EncryptedData.Length = DataToEncode.Length;  
@@ -96,6 +95,8 @@ F_DATA DecodeData(F_DATA DataToDecode, BYTE key[], int keysize){
     F_DATA      ClearData;  
     WORD        key_schedule[60];
     BYTE        enc_buf[16];
+
+    //Pad data to be a multiple of 16    
     
 
     ClearData.Data = (char *) malloc (DataToDecode.Length);
