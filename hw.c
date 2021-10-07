@@ -7,6 +7,7 @@
 #define ENCRYPTED_FILE_SUFFIX   ".enc"
 #define END_BYTE   0x10
 #define PAD_BYTE    0x00
+#define AES_BLOCK_SIZE 16
 //#define PATH_MAX                 256        // for simplification
 
 typedef struct f_data{
@@ -72,21 +73,28 @@ F_DATA ReadFile(char *InputFilename){
 
 }
 
+void xor(const BYTE in[], BYTE out[], size_t len)
+{
+	size_t idx;
 
-F_DATA EncodeData(F_DATA DataToEncode, BYTE key[], int keysize){
+	for (idx = 0; idx < len; idx++)
+		out[idx] ^= in[idx];
+}
+
+
+F_DATA EncodeData(F_DATA DataToEncode, BYTE key[], int keysize, BYTE iv[]){
+    BYTE        buf_in[AES_BLOCK_SIZE], buf_out[AES_BLOCK_SIZE], iv_buf[AES_BLOCK_SIZE];
     F_DATA      EncryptedData;  
     WORD        key_schedule[60];
-    BYTE        *new_data; 
-    BYTE        *enc_buf; 
-    int         nl;
-    int         ti;
+    BYTE        *new_data, *enc_buf; 
+    int         blocks, idx, nl, ti;
 
     //length of padded data
     nl = DataToEncode.Length;
     ti = DataToEncode.Length;
     
     nl++;
-    while(nl%16){
+    while(nl%AES_BLOCK_SIZE){
         nl++;
     }
 
@@ -99,7 +107,7 @@ F_DATA EncodeData(F_DATA DataToEncode, BYTE key[], int keysize){
     //copy old data to new data holder
     memcpy(new_data, DataToEncode.Data, DataToEncode.Length);
 
-    //added padded bytes to new_data
+    //add end byte and padd bytes to new_data
     *(new_data+ti) = END_BYTE;
     ti++;
     while(ti<nl){
@@ -108,23 +116,31 @@ F_DATA EncodeData(F_DATA DataToEncode, BYTE key[], int keysize){
     }
 
     aes_key_setup(key, key_schedule, keysize);
-    aes_encrypt(new_data, enc_buf, key_schedule, keysize);
+
+    blocks = EncryptedData.Length / AES_BLOCK_SIZE;
+    memcpy(iv_buf, iv, AES_BLOCK_SIZE);
+
+    for (idx = 0; idx < blocks; idx++) {
+		memcpy(buf_in, &new_data[idx * AES_BLOCK_SIZE], AES_BLOCK_SIZE);
+		xor(iv_buf, buf_in, AES_BLOCK_SIZE);
+		aes_encrypt(buf_in, buf_out, key_schedule, keysize);
+		memcpy(&enc_buf[idx * AES_BLOCK_SIZE], buf_out, AES_BLOCK_SIZE);
+		memcpy(iv_buf, buf_out, AES_BLOCK_SIZE);
+	}
+    //aes_encrypt(new_data, enc_buf, key_schedule, keysize);
             
     memcpy(EncryptedData.Data, enc_buf, nl);
 
-    printf("original length is: %i\n", DataToEncode.Length);
-    printf("new length is: %i\n", nl);
-
-       
     return EncryptedData;
 }
 
 
-F_DATA DecodeData(F_DATA DataToDecode, BYTE key[], int keysize){
+F_DATA DecodeData(F_DATA DataToDecode, BYTE key[], int keysize, BYTE iv[]){
+    BYTE        buf_in[AES_BLOCK_SIZE], buf_out[AES_BLOCK_SIZE], iv_buf[AES_BLOCK_SIZE];
     F_DATA      ClearData;  
     WORD        key_schedule[60];
     BYTE        *enc_buf;
-    int         ol;
+    int         blocks, idx, ol;
     char        cc;
 
     //malloc memory to store decoded 
@@ -132,7 +148,19 @@ F_DATA DecodeData(F_DATA DataToDecode, BYTE key[], int keysize){
     ol = DataToDecode.Length;
 
     aes_key_setup(key, key_schedule, keysize);   
-    aes_decrypt(DataToDecode.Data, enc_buf, key_schedule, keysize);
+
+    blocks = DataToDecode.Length / AES_BLOCK_SIZE;
+    memcpy(iv_buf, iv, AES_BLOCK_SIZE);
+
+	for (idx = 0; idx < blocks; idx++) {
+		memcpy(buf_in, &DataToDecode.Data[idx * AES_BLOCK_SIZE], AES_BLOCK_SIZE);
+		aes_decrypt(buf_in, buf_out, key_schedule, keysize);
+		xor(iv_buf, buf_out, AES_BLOCK_SIZE);
+		memcpy(&enc_buf[idx * AES_BLOCK_SIZE], buf_out, AES_BLOCK_SIZE);
+		memcpy(iv_buf, buf_in, AES_BLOCK_SIZE);
+	}
+
+    //aes_decrypt(DataToDecode.Data, enc_buf, key_schedule, keysize);
 
     cc = *(enc_buf+ol-1);
     while(cc != END_BYTE){
@@ -146,21 +174,18 @@ F_DATA DecodeData(F_DATA DataToDecode, BYTE key[], int keysize){
 
     memcpy(ClearData.Data, enc_buf, ol);
 
-    printf("received length is: %i\n", DataToDecode.Length);
-    printf("computed original length is: %i\n", ol);
-    
     return ClearData;
 }
 
 
-void EncodeFile(char *InputFilename, BYTE key[]) {
+void EncodeFile(char *InputFilename, BYTE key[], BYTE iv[]) {
     F_DATA          ClearData;          
     F_DATA          EncData;          
     char            OutputFilename[PATH_MAX];
     
     ClearData = ReadFile(InputFilename);    
 
-    EncData = EncodeData(ClearData, key, 256);
+    EncData = EncodeData(ClearData, key, 256, iv);
 
     strcpy(OutputFilename, InputFilename);
     strcat(OutputFilename, ENCRYPTED_FILE_SUFFIX);
@@ -170,7 +195,7 @@ void EncodeFile(char *InputFilename, BYTE key[]) {
 }
 
 
-void DecodeFile(char *InputFilename, BYTE key[]) {
+void DecodeFile(char *InputFilename, BYTE key[], BYTE iv[]) {
     F_DATA          EncData;          
     F_DATA          ClearData;          
     char            OutputFilename[PATH_MAX];
@@ -178,7 +203,7 @@ void DecodeFile(char *InputFilename, BYTE key[]) {
     
     EncData = ReadFile(InputFilename);    
 
-    ClearData = DecodeData(EncData, key, 256);
+    ClearData = DecodeData(EncData, key, 256, iv);
 
     strcpy(OutputFilename, InputFilename);
     len = strlen(InputFilename);
@@ -200,8 +225,12 @@ int main() {
 		{0x60,0x3d,0xeb,0x10,0x15,0xca,0x71,0xbe,0x2b,0x73,0xae,0xf0,0x85,0x7d,0x77,0x81,0x1f,0x35,0x2c,0x07,0x3b,0x61,0x08,0xd7,0x2d,0x98,0x10,0xa3,0x09,0x14,0xdf,0xf4}
 	};
 
-    EncodeFile(InputFilename, key[0]);
-    DecodeFile(EncFilename, key[0]);
+    BYTE iv[1][16] = {
+		{0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f}
+	};
+
+    EncodeFile(InputFilename, key[0], iv[0]);
+    DecodeFile(EncFilename, key[0], iv[0]);
 
     return 0;
 }
