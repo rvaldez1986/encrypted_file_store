@@ -8,6 +8,7 @@
 #define END_BYTE   0x10
 #define PAD_BYTE    0x00
 #define AES_BLOCK_SIZE 16
+#define IV_LEN 16
 //#define PATH_MAX                 256        // for simplification
 
 typedef struct f_data{
@@ -101,8 +102,8 @@ F_DATA EncodeData(F_DATA DataToEncode, BYTE key[], int keysize, BYTE iv[]){
     //malloc memory to store padded data  
     new_data = (BYTE *) malloc (nl);
     enc_buf = (BYTE *) malloc (nl);
-    EncryptedData.Data = (char *) malloc (nl);  //consider IV lenght
-    EncryptedData.Length = nl; //consider IV lenght
+    EncryptedData.Data = (char *) malloc (nl+IV_LEN);  //consider IV lenght
+    EncryptedData.Length = nl+IV_LEN; //consider IV lenght
 
     //copy old data to new data holder
     memcpy(new_data, DataToEncode.Data, DataToEncode.Length);
@@ -128,7 +129,8 @@ F_DATA EncodeData(F_DATA DataToEncode, BYTE key[], int keysize, BYTE iv[]){
 		memcpy(iv_buf, buf_out, AES_BLOCK_SIZE);
 	}
                 
-    memcpy(EncryptedData.Data, enc_buf, nl); //Include IV
+    memcpy(EncryptedData.Data, iv, IV_LEN); //Include IV
+    memcpy(EncryptedData.Data+IV_LEN, enc_buf, nl);
 
     return EncryptedData;
 }
@@ -166,24 +168,24 @@ F_DATA DecodeData(F_DATA DataToDecode, BYTE key[], int keysize, BYTE iv[]){
     }
     ol--;    
     
-    ClearData.Data = (char *) malloc (ol);  //extract iv length
-    ClearData.Length = ol; //extract iv length
+    ClearData.Data = (char *) malloc (ol-IV_LEN);  //extract iv length
+    ClearData.Length = ol-IV_LEN; //extract iv length
 
-    memcpy(ClearData.Data, enc_buf, ol); //extract iv length (enc_buf+ivlength)
+    memcpy(ClearData.Data, enc_buf+IV_LEN, ol-IV_LEN); //extract iv length (enc_buf+ivlength)
 
     return ClearData;
 }
 
 
-void EncodeFile(char *InputFilename, BYTE key[], BYTE iv[]) { //IV should not be a parameter
+void EncodeFile(char *InputFilename, BYTE key[]) { 
     F_DATA          ClearData;          
     F_DATA          EncData;          
     char            OutputFilename[PATH_MAX];
+    BYTE iv[IV_LEN] = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f};
     
     ClearData = ReadFile(InputFilename);    
 
     //generate IV here pass it to function
-
     EncData = EncodeData(ClearData, key, 256, iv);
 
     strcpy(OutputFilename, InputFilename);
@@ -194,10 +196,11 @@ void EncodeFile(char *InputFilename, BYTE key[], BYTE iv[]) { //IV should not be
 }
 
 
-void DecodeFile(char *InputFilename, BYTE key[], BYTE iv[]) {  //Iv should not be a parameter here
+void DecodeFile(char *InputFilename, BYTE key[]) {  
     F_DATA          EncData;          
     F_DATA          ClearData;          
     char            OutputFilename[PATH_MAX];
+    BYTE            iv[IV_LEN];
     
     strcpy(OutputFilename, InputFilename);
     strcat(OutputFilename, ENCRYPTED_FILE_SUFFIX);
@@ -205,6 +208,7 @@ void DecodeFile(char *InputFilename, BYTE key[], BYTE iv[]) {  //Iv should not b
     EncData = ReadFile(OutputFilename); 
 
     //extract IV from EncData and pass it to decodeData
+    memcpy(iv, EncData.Data, IV_LEN);
 
     ClearData = DecodeData(EncData, key, 256, iv);
 
@@ -222,12 +226,9 @@ int main() {
 		{0x60,0x3d,0xeb,0x10,0x15,0xca,0x71,0xbe,0x2b,0x73,0xae,0xf0,0x85,0x7d,0x77,0x81,0x1f,0x35,0x2c,0x07,0x3b,0x61,0x08,0xd7,0x2d,0x98,0x10,0xa3,0x09,0x14,0xdf,0xf4}
 	};
 
-    BYTE iv[1][16] = {  //16*8 = 128 bits of random
-		{0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f}
-	};
-
-    EncodeFile(InputFilename, key[0], iv[0]);
-    DecodeFile(InputFilename, key[0], iv[0]);
+    
+    EncodeFile(InputFilename, key[0]);
+    DecodeFile(InputFilename, key[0]);
 
     return 0;
 }
