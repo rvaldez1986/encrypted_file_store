@@ -17,7 +17,7 @@ typedef struct f_data{
 } F_DATA;
 
 void WriteFile(
-    F_DATA DataToWrite,
+    F_DATA *DataToWrite,
     char *OutputFilename)
 {
     FILE    *OutputFile;
@@ -31,8 +31,8 @@ void WriteFile(
         exit(1);
     }
     
-    BytesLeft   = DataToWrite.Length;
-    pCurrent = DataToWrite.Data;
+    BytesLeft   = DataToWrite->Length;
+    pCurrent = DataToWrite->Data;
 
     if (fwrite(pCurrent, 1, BytesLeft, OutputFile) != BytesLeft) {
         printf("Error writing file\n");
@@ -205,7 +205,7 @@ void EncodeFile(char *InputFilename, BYTE key[]) {
     strcpy(OutputFilename, InputFilename);
     strcat(OutputFilename, ENCRYPTED_FILE_SUFFIX);
 
-    WriteFile(*EncData, OutputFilename);
+    WriteFile(EncData, OutputFilename);
     
 }
 
@@ -226,7 +226,7 @@ void DecodeFile(char *InputFilename, BYTE key[]) {
 
     ClearData = DecodeData(EncData, key, 256, iv);
 
-    WriteFile(*ClearData, InputFilename);
+    WriteFile(ClearData, InputFilename);
     
 }
 
