@@ -101,8 +101,8 @@ F_DATA EncodeData(F_DATA DataToEncode, BYTE key[], int keysize, BYTE iv[]){
     //malloc memory to store padded data  
     new_data = (BYTE *) malloc (nl);
     enc_buf = (BYTE *) malloc (nl);
-    EncryptedData.Data = (char *) malloc (nl);
-    EncryptedData.Length = nl; 
+    EncryptedData.Data = (char *) malloc (nl);  //consider IV lenght
+    EncryptedData.Length = nl; //consider IV lenght
 
     //copy old data to new data holder
     memcpy(new_data, DataToEncode.Data, DataToEncode.Length);
@@ -127,9 +127,8 @@ F_DATA EncodeData(F_DATA DataToEncode, BYTE key[], int keysize, BYTE iv[]){
 		memcpy(&enc_buf[idx * AES_BLOCK_SIZE], buf_out, AES_BLOCK_SIZE);
 		memcpy(iv_buf, buf_out, AES_BLOCK_SIZE);
 	}
-    //aes_encrypt(new_data, enc_buf, key_schedule, keysize);
-            
-    memcpy(EncryptedData.Data, enc_buf, nl);
+                
+    memcpy(EncryptedData.Data, enc_buf, nl); //Include IV
 
     return EncryptedData;
 }
@@ -160,8 +159,6 @@ F_DATA DecodeData(F_DATA DataToDecode, BYTE key[], int keysize, BYTE iv[]){
 		memcpy(iv_buf, buf_in, AES_BLOCK_SIZE);
 	}
 
-    //aes_decrypt(DataToDecode.Data, enc_buf, key_schedule, keysize);
-
     cc = *(enc_buf+ol-1);
     while(cc != END_BYTE){
         ol--;
@@ -169,21 +166,23 @@ F_DATA DecodeData(F_DATA DataToDecode, BYTE key[], int keysize, BYTE iv[]){
     }
     ol--;    
     
-    ClearData.Data = (char *) malloc (ol);
-    ClearData.Length = ol;
+    ClearData.Data = (char *) malloc (ol);  //extract iv length
+    ClearData.Length = ol; //extract iv length
 
-    memcpy(ClearData.Data, enc_buf, ol);
+    memcpy(ClearData.Data, enc_buf, ol); //extract iv length (enc_buf+ivlength)
 
     return ClearData;
 }
 
 
-void EncodeFile(char *InputFilename, BYTE key[], BYTE iv[]) {
+void EncodeFile(char *InputFilename, BYTE key[], BYTE iv[]) { //IV should not be a parameter
     F_DATA          ClearData;          
     F_DATA          EncData;          
     char            OutputFilename[PATH_MAX];
     
     ClearData = ReadFile(InputFilename);    
+
+    //generate IV here pass it to function
 
     EncData = EncodeData(ClearData, key, 256, iv);
 
@@ -195,22 +194,21 @@ void EncodeFile(char *InputFilename, BYTE key[], BYTE iv[]) {
 }
 
 
-void DecodeFile(char *InputFilename, BYTE key[], BYTE iv[]) {
+void DecodeFile(char *InputFilename, BYTE key[], BYTE iv[]) {  //Iv should not be a parameter here
     F_DATA          EncData;          
     F_DATA          ClearData;          
     char            OutputFilename[PATH_MAX];
-    int             len;
     
-    EncData = ReadFile(InputFilename);    
+    strcpy(OutputFilename, InputFilename);
+    strcat(OutputFilename, ENCRYPTED_FILE_SUFFIX);
+    
+    EncData = ReadFile(OutputFilename); 
+
+    //extract IV from EncData and pass it to decodeData
 
     ClearData = DecodeData(EncData, key, 256, iv);
 
-    strcpy(OutputFilename, InputFilename);
-    len = strlen(InputFilename);
-    OutputFilename[len-4] = '\0';
-   
-
-    WriteFile(ClearData, OutputFilename);
+    WriteFile(ClearData, InputFilename);
     
 }
 
@@ -219,18 +217,17 @@ void DecodeFile(char *InputFilename, BYTE key[], BYTE iv[]) {
 int main() {
 
     char    *InputFilename = "test.txt";
-    char    *EncFilename = "test.txt.enc";
-
-    BYTE key[1][32] = {
+    
+    BYTE key[1][32] = {  //32*8=256 (sha-256)
 		{0x60,0x3d,0xeb,0x10,0x15,0xca,0x71,0xbe,0x2b,0x73,0xae,0xf0,0x85,0x7d,0x77,0x81,0x1f,0x35,0x2c,0x07,0x3b,0x61,0x08,0xd7,0x2d,0x98,0x10,0xa3,0x09,0x14,0xdf,0xf4}
 	};
 
-    BYTE iv[1][16] = {
+    BYTE iv[1][16] = {  //16*8 = 128 bits of random
 		{0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f}
 	};
 
     EncodeFile(InputFilename, key[0], iv[0]);
-    DecodeFile(EncFilename, key[0], iv[0]);
+    DecodeFile(InputFilename, key[0], iv[0]);
 
     return 0;
 }
