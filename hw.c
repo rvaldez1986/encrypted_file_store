@@ -43,11 +43,11 @@ void WriteFile(
 }
 
 
-F_DATA ReadFile(char *InputFilename){
+F_DATA *ReadFile(char *InputFilename){
     FILE            *File;         
     int             BytesRead;         
     unsigned char   FileBuf[MAX_FILE_SIZE]; 
-    F_DATA          FileData;          
+    F_DATA          *FileData;          
     
     if ((File = fopen(InputFilename, "rb")) == NULL)
     {
@@ -56,8 +56,7 @@ F_DATA ReadFile(char *InputFilename){
         exit(1);
     }
     BytesRead = fread(FileBuf, 1, MAX_FILE_SIZE, File);
-    FileData.Length = BytesRead;
-    FileData.Data = FileBuf;
+    
     if (BytesRead == 0)
     {
         printf("Error: did not read any bytes from file\n");
@@ -68,6 +67,12 @@ F_DATA ReadFile(char *InputFilename){
        printf("Error: exceeded currently supported maximum file size\n");
         exit(1);
     }
+
+    FileData = malloc(sizeof(F_DATA));
+    FileData->Data = (char *) malloc (BytesRead);  
+    FileData->Length = BytesRead;
+    FileData->Data = FileBuf;
+
     fclose(File);
 
     return FileData;
@@ -178,7 +183,7 @@ F_DATA DecodeData(F_DATA DataToDecode, BYTE key[], int keysize, BYTE iv[]){
 
 
 void EncodeFile(char *InputFilename, BYTE key[]) { 
-    F_DATA          ClearData;          
+    F_DATA          *ClearData;          
     F_DATA          EncData;          
     char            OutputFilename[PATH_MAX];
     BYTE iv[IV_LEN] = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f};
@@ -186,7 +191,7 @@ void EncodeFile(char *InputFilename, BYTE key[]) {
     ClearData = ReadFile(InputFilename);    
 
     //generate IV here pass it to function
-    EncData = EncodeData(ClearData, key, 256, iv);
+    EncData = EncodeData(*ClearData, key, 256, iv);
 
     strcpy(OutputFilename, InputFilename);
     strcat(OutputFilename, ENCRYPTED_FILE_SUFFIX);
@@ -197,7 +202,7 @@ void EncodeFile(char *InputFilename, BYTE key[]) {
 
 
 void DecodeFile(char *InputFilename, BYTE key[]) {  
-    F_DATA          EncData;          
+    F_DATA          *EncData;          
     F_DATA          ClearData;          
     char            OutputFilename[PATH_MAX];
     BYTE            iv[IV_LEN];
@@ -208,9 +213,9 @@ void DecodeFile(char *InputFilename, BYTE key[]) {
     EncData = ReadFile(OutputFilename); 
 
     //extract IV from EncData and pass it to decodeData
-    memcpy(iv, EncData.Data, IV_LEN);
+    memcpy(iv, EncData->Data, IV_LEN);
 
-    ClearData = DecodeData(EncData, key, 256, iv);
+    ClearData = DecodeData(*EncData, key, 256, iv);
 
     WriteFile(ClearData, InputFilename);
     
@@ -226,7 +231,6 @@ int main() {
 		{0x60,0x3d,0xeb,0x10,0x15,0xca,0x71,0xbe,0x2b,0x73,0xae,0xf0,0x85,0x7d,0x77,0x81,0x1f,0x35,0x2c,0x07,0x3b,0x61,0x08,0xd7,0x2d,0x98,0x10,0xa3,0x09,0x14,0xdf,0xf4}
 	};
 
-    
     EncodeFile(InputFilename, key[0]);
     DecodeFile(InputFilename, key[0]);
 
