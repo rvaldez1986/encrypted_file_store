@@ -122,7 +122,7 @@ F_DATA *EncodeData(F_DATA *DataToEncode, BYTE key[], int keysize, BYTE iv[]){
     blocks = nl / AES_BLOCK_SIZE;
     memcpy(iv_buf, iv, AES_BLOCK_SIZE);   
     for (idx = 0; idx < blocks; idx++) {
-		memcpy(buf_in, &new_data[idx * AES_BLOCK_SIZE], AES_BLOCK_SIZE);
+	    memcpy(buf_in, &new_data[idx * AES_BLOCK_SIZE], AES_BLOCK_SIZE);
 		xor(iv_buf, buf_in, AES_BLOCK_SIZE);
 		aes_encrypt(buf_in, buf_out, key_schedule, keysize);
 		memcpy(&enc_buf[idx * AES_BLOCK_SIZE], buf_out, AES_BLOCK_SIZE);
@@ -149,25 +149,25 @@ F_DATA *EncodeData(F_DATA *DataToEncode, BYTE key[], int keysize, BYTE iv[]){
 }
 
 
-F_DATA DecodeData(F_DATA DataToDecode, BYTE key[], int keysize, BYTE iv[]){
+F_DATA *DecodeData(F_DATA *DataToDecode, BYTE key[], int keysize, BYTE iv[]){
     BYTE        buf_in[AES_BLOCK_SIZE], buf_out[AES_BLOCK_SIZE], iv_buf[AES_BLOCK_SIZE];
-    F_DATA      ClearData;  
+    F_DATA      *ClearData;  
     WORD        key_schedule[60];
     BYTE        *enc_buf;
     int         blocks, idx, ol;
     char        cc;
 
     //malloc memory to store decoded 
-    enc_buf = (BYTE *) malloc (DataToDecode.Length);
-    ol = DataToDecode.Length;
+    enc_buf = (BYTE *) malloc (DataToDecode->Length);
+    ol = DataToDecode->Length;
 
     aes_key_setup(key, key_schedule, keysize);   
 
-    blocks = DataToDecode.Length / AES_BLOCK_SIZE;
+    blocks = DataToDecode->Length / AES_BLOCK_SIZE;
     memcpy(iv_buf, iv, AES_BLOCK_SIZE);
 
 	for (idx = 0; idx < blocks; idx++) {
-		memcpy(buf_in, &DataToDecode.Data[idx * AES_BLOCK_SIZE], AES_BLOCK_SIZE);
+		memcpy(buf_in, &DataToDecode->Data[idx * AES_BLOCK_SIZE], AES_BLOCK_SIZE);
 		aes_decrypt(buf_in, buf_out, key_schedule, keysize);
 		xor(iv_buf, buf_out, AES_BLOCK_SIZE);
 		memcpy(&enc_buf[idx * AES_BLOCK_SIZE], buf_out, AES_BLOCK_SIZE);
@@ -181,10 +181,11 @@ F_DATA DecodeData(F_DATA DataToDecode, BYTE key[], int keysize, BYTE iv[]){
     }
     ol--;    
     
-    ClearData.Data = (char *) malloc (ol-IV_LEN);  //extract iv length
-    ClearData.Length = ol-IV_LEN; //extract iv length
+    ClearData = malloc(sizeof(F_DATA));
+    ClearData->Data = (char *) malloc (ol-IV_LEN);  //extract iv length
+    ClearData->Length = ol-IV_LEN; //extract iv length
 
-    memcpy(ClearData.Data, enc_buf+IV_LEN, ol-IV_LEN); //extract iv length (enc_buf+ivlength)
+    memcpy(ClearData->Data, enc_buf+IV_LEN, ol-IV_LEN); //extract iv length (enc_buf+ivlength)
 
     return ClearData;
 }
@@ -211,7 +212,7 @@ void EncodeFile(char *InputFilename, BYTE key[]) {
 
 void DecodeFile(char *InputFilename, BYTE key[]) {  
     F_DATA          *EncData;          
-    F_DATA          ClearData;          
+    F_DATA          *ClearData;          
     char            OutputFilename[PATH_MAX];
     BYTE            iv[IV_LEN];
     
@@ -223,9 +224,9 @@ void DecodeFile(char *InputFilename, BYTE key[]) {
     //extract IV from EncData and pass it to decodeData
     memcpy(iv, EncData->Data, IV_LEN);
 
-    ClearData = DecodeData(*EncData, key, 256, iv);
+    ClearData = DecodeData(EncData, key, 256, iv);
 
-    WriteFile(ClearData, InputFilename);
+    WriteFile(*ClearData, InputFilename);
     
 }
 
