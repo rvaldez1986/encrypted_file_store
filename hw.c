@@ -97,13 +97,11 @@ F_DATA *EncodeData(F_DATA *DataToEncode, BYTE key[], int keysize, BYTE iv[]){
 
     //length of padded data
     nl = DataToEncode->Length;
-    ti = DataToEncode->Length;
-    
+    ti = DataToEncode->Length;    
     nl++;
     while(nl%AES_BLOCK_SIZE){
         nl++;
     }
-
     
     //malloc memory to store padded data
     enc_buf = (BYTE *) calloc (nl, sizeof(BYTE));
@@ -144,7 +142,8 @@ F_DATA *EncodeData(F_DATA *DataToEncode, BYTE key[], int keysize, BYTE iv[]){
     EncryptedData = malloc(sizeof(F_DATA));
     EncryptedData->Data = (char *) malloc (nl+IV_LEN);  //consider IV lenght   
     EncryptedData->Length = nl+IV_LEN; //consider IV lenght
-    EncryptedData->Data = whole;    
+    memcpy(EncryptedData->Data, whole, nl+IV_LEN); 
+    free(whole);  
 
     return EncryptedData;
 }
