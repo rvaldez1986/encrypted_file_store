@@ -207,6 +207,8 @@ void EncodeFile(char *InputFilename, BYTE key[]) {
     strcat(OutputFilename, ENCRYPTED_FILE_SUFFIX);
 
     WriteFile(EncData, OutputFilename);
+    free(ClearData);
+    free(EncData);
     
 }
 
@@ -228,7 +230,8 @@ void DecodeFile(char *InputFilename, BYTE key[]) {
     ClearData = DecodeData(EncData, key, 256, iv);
 
     WriteFile(ClearData, InputFilename);
-    
+    free(ClearData);
+    free(EncData);
 }
 
 
