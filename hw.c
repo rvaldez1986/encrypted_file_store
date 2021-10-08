@@ -104,8 +104,8 @@ F_DATA *EncodeData(F_DATA *DataToEncode, BYTE key[], int keysize, BYTE iv[]){
     }
     
     //malloc memory to store padded data
-    enc_buf = (BYTE *) calloc (nl, sizeof(BYTE));
-    new_data = (BYTE *) calloc (nl, sizeof(BYTE));    
+    enc_buf = (BYTE *) malloc (nl);
+    new_data = (BYTE *) malloc (nl);    
    
     //copy old data to new data holder
     memcpy(new_data, DataToEncode->Data, DataToEncode->Length);
