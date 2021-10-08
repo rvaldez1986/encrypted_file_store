@@ -186,6 +186,7 @@ F_DATA *DecodeData(F_DATA *DataToDecode, BYTE key[], int keysize, BYTE iv[]){
     ClearData->Length = ol-IV_LEN; //extract iv length
 
     memcpy(ClearData->Data, enc_buf+IV_LEN, ol-IV_LEN); //extract iv length (enc_buf+ivlength)
+    free(enc_buf);
 
     return ClearData;
 }
