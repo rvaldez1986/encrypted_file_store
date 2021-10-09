@@ -88,6 +88,52 @@ void xor(const BYTE *in, BYTE *out, size_t len)
 		out[idx] ^= in[idx];
 }
 
+BYTE *HMAC(BYTE *key, BYTE *m, size_t len){
+    //H(K or opad || H((K or ipad)||m))
+    BYTE        *buf0, *buf1, *buf2;
+    SHA256_CTX      ctx;
+
+    BYTE opad[SHA256_BLOCK_SIZE] = {0x5c,0x5c,0x5c,0x5c,0x5c,0x5c,0x5c,0x5c,0x5c,0x5c,0x5c,0x5c,0x5c,0x5c,0x5c,0x5c,
+	                                 0x5c,0x5c,0x5c,0x5c,0x5c,0x5c,0x5c,0x5c,0x5c,0x5c,0x5c,0x5c,0x5c,0x5c,0x5c,0x5c};
+    BYTE ipad[SHA256_BLOCK_SIZE] = {0x36,0x36,0x36,0x36,0x36,0x36,0x36,0x36,0x36,0x36,0x36,0x36,0x36,0x36,0x36,0x36,
+	                                 0x36,0x36,0x36,0x36,0x36,0x36,0x36,0x36,0x36,0x36,0x36,0x36,0x36,0x36,0x36,0x36};
+    
+    buf0 = (BYTE *) malloc(SHA256_BLOCK_SIZE);
+    buf1 = (BYTE *) malloc(len+SHA256_BLOCK_SIZE);
+
+    //K or ipad
+    memcpy(buf0, key, SHA256_BLOCK_SIZE);
+    xor(ipad, buf0, SHA256_BLOCK_SIZE);
+    //|| m
+    memcpy(buf1, buf0, SHA256_BLOCK_SIZE);
+    memcpy(buf1+SHA256_BLOCK_SIZE, m, len);
+    // H((K or ipad)||m)
+    sha256_init(&ctx);
+	sha256_update(&ctx, buf1, len+SHA256_BLOCK_SIZE);
+	sha256_final(&ctx, buf0);
+    free(buf1);
+
+    //K or opad
+    buf2 = (BYTE *) malloc(SHA256_BLOCK_SIZE);
+    memcpy(buf2, key, SHA256_BLOCK_SIZE);
+    xor(opad, buf2, SHA256_BLOCK_SIZE);
+    //K or opad || H((K or ipad)||m)
+    buf1 = (BYTE *) malloc(2*SHA256_BLOCK_SIZE);
+    memcpy(buf1, buf2, SHA256_BLOCK_SIZE);
+    memcpy(buf1+SHA256_BLOCK_SIZE, buf0, SHA256_BLOCK_SIZE);
+    free(buf0);
+    free(buf2);
+
+    //H(K or opad || H((K or ipad)||m))
+    buf0 = (BYTE *) malloc(SHA256_BLOCK_SIZE);
+    sha256_init(&ctx);
+	sha256_update(&ctx, buf1, 2*SHA256_BLOCK_SIZE);
+	sha256_final(&ctx, buf0);
+    free(buf1);
+    return buf0;
+
+} 
+
 
 F_DATA *EncodeData(F_DATA *DataToEncode, BYTE key[], int keysize, BYTE iv[]){
     BYTE        buf_in[AES_BLOCK_SIZE], buf_out[AES_BLOCK_SIZE], iv_buf[AES_BLOCK_SIZE];
@@ -269,9 +315,13 @@ int main() {
 
     char    *InputFilename = "test.txt";
     char    *pwd = "rv12345";
+    char    *key, *M; 
     
-    EncodeFile(InputFilename, pwd);
-    DecodeFile(InputFilename, pwd);
+    //EncodeFile(InputFilename, pwd);
+    //DecodeFile(InputFilename, pwd);
+
+    key = gen_key(pwd, "integrity");
+    M = HMAC(key, "Hello World!", 12);
     
     return 0;
 }
