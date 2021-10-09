@@ -177,20 +177,25 @@ F_DATA *EncodeData(F_DATA *DataToEncode, BYTE *key0, BYTE *key1, int keysize, BY
 		memcpy(iv_buf, buf_out, AES_BLOCK_SIZE);
 	}    
 
-    //release new data
+    //0 and release new data
+    memset(new_data, 0, sizeof(*new_data));
     free(new_data);
     //join encrypted + iv
     whole = (BYTE *) malloc (nl+IV_LEN);                 
     memcpy(whole, iv, IV_LEN); //Include IV
     memcpy(whole+IV_LEN, enc_buf, nl);
-    //release enc_buf
+    //0 and release enc_buf
+    memset(enc_buf, 0, sizeof(*enc_buf));
     free(enc_buf);
 
-    //generate MAC and append to message
+    //generate HMAC and append to message
     M = HMAC(key1, whole, nl + IV_LEN);
     enc_buf = (BYTE *) malloc (nl + IV_LEN + SHA256_BLOCK_SIZE);
     memcpy(enc_buf, whole, nl + IV_LEN);
     memcpy(enc_buf + nl + IV_LEN, M, SHA256_BLOCK_SIZE);
+    //0 and release whole and M
+    memset(whole, 0, sizeof(*whole));
+    memset(M, 0, sizeof(*M));
     free(whole);  
     free(M);
 
@@ -198,7 +203,9 @@ F_DATA *EncodeData(F_DATA *DataToEncode, BYTE *key0, BYTE *key1, int keysize, BY
     EncryptedData = malloc(sizeof(F_DATA));
     EncryptedData->Data = (char *) malloc (nl + IV_LEN + SHA256_BLOCK_SIZE);  //consider IV lenght  and HMAC
     EncryptedData->Length = nl + IV_LEN + SHA256_BLOCK_SIZE; //consider IV lenght and HMAC
-    memcpy(EncryptedData->Data, enc_buf, nl + IV_LEN + SHA256_BLOCK_SIZE); 
+    memcpy(EncryptedData->Data, enc_buf, nl + IV_LEN + SHA256_BLOCK_SIZE);
+    //0 and release enc_buf
+    memset(enc_buf, 0, sizeof(*enc_buf)); 
     free(enc_buf);  
     
 
@@ -214,27 +221,28 @@ F_DATA *DecodeData(F_DATA *DataToDecode, BYTE *key0, BYTE *key1, int keysize, BY
     int         blocks, idx, ol, om;
     char        cc;
 
-    //check MAC
+    //check HMAC
     om = DataToDecode->Length-SHA256_BLOCK_SIZE;
     orig_message = (char *) malloc (om);
     memcpy(orig_message, DataToDecode->Data, om); 
     M = HMAC(key1, orig_message, om);
     if(memcmp(M, &DataToDecode->Data[om], SHA256_BLOCK_SIZE)){   
 
-        printf("either data has been tampered or password is incorrect");
+        printf("either data has been tampered or password is incorrect\nCannot extract file");
         exit(1);
     }
+    //0 and release orig_message
+    memset(orig_message, 0, sizeof(*orig_message)); 
     free(orig_message);
 
     //malloc memory to store decoded 
     enc_buf = (BYTE *) malloc (om);
     ol = om;
 
-    aes_key_setup(key0, key_schedule, keysize);   
-
+    //decrypt message in DataToDecode->Data, decoded moves to enc_buf
+    aes_key_setup(key0, key_schedule, keysize);
     blocks = om / AES_BLOCK_SIZE;
     memcpy(iv_buf, iv, AES_BLOCK_SIZE);
-
 	for (idx = 0; idx < blocks; idx++) {
 		memcpy(buf_in, &DataToDecode->Data[idx * AES_BLOCK_SIZE], AES_BLOCK_SIZE);
 		aes_decrypt(buf_in, buf_out, key_schedule, keysize);
@@ -243,6 +251,7 @@ F_DATA *DecodeData(F_DATA *DataToDecode, BYTE *key0, BYTE *key1, int keysize, BY
 		memcpy(iv_buf, buf_in, AES_BLOCK_SIZE);
 	}
 
+    //obtain original length of message
     cc = *(enc_buf+ol-1);
     while(cc != END_BYTE){
         ol--;
@@ -250,18 +259,20 @@ F_DATA *DecodeData(F_DATA *DataToDecode, BYTE *key0, BYTE *key1, int keysize, BY
     }
     ol--;    
     
-    
+    //malloc structure to retun the decrypted message
     ClearData = malloc(sizeof(F_DATA));
     ClearData->Data = (char *) malloc (ol-IV_LEN);  //extract iv length
     ClearData->Length = ol-IV_LEN; //extract iv length
-
     memcpy(ClearData->Data, enc_buf+IV_LEN, ol-IV_LEN); //extract iv length (enc_buf+ivlength)
-    free(enc_buf);    
+    //0 and release enc_buf
+    memset(enc_buf, 0, sizeof(*enc_buf)); 
+    free(enc_buf);     
 
     return ClearData;
 }
 
 BYTE *gen_key(char *pwd, char *type){
+    //generate key from password, use it for confidentiality or integrity (type)
     BYTE            *buf;
     SHA256_CTX      ctx;
 	int             idx;
@@ -276,6 +287,8 @@ BYTE *gen_key(char *pwd, char *type){
 	for (idx = 0; idx < 10000; ++idx)
 	    sha256_update(&ctx, p_text, strlen(pwd)+strlen(type));
 	sha256_final(&ctx, buf);
+    //0 and release p_text
+    memset(p_text, 0, sizeof(*p_text));
     free(p_text);
 
     return buf;
@@ -302,6 +315,11 @@ void EncodeFile(char *InputFilename, char *pwd) {
     strcat(OutputFilename, ENCRYPTED_FILE_SUFFIX);
 
     WriteFile(EncData, OutputFilename);
+    //0 and release all data
+    memset(ClearData, 0, sizeof(*ClearData));
+    memset(EncData, 0, sizeof(*EncData));
+    memset(key0, 0, sizeof(*key0));
+    memset(key1, 0, sizeof(*key1));
     free(ClearData);
     free(EncData);
     free(key0);
@@ -328,11 +346,16 @@ void DecodeFile(char *InputFilename, char *pwd) {
 
     ClearData = DecodeData(EncData, key0, key1, 256, iv);
 
-    //WriteFile(ClearData, InputFilename);
+    WriteFile(ClearData, InputFilename);
+    //0 and release all data
+    memset(ClearData, 0, sizeof(*ClearData));
+    memset(EncData, 0, sizeof(*EncData));
+    memset(key0, 0, sizeof(*key0));
+    memset(key1, 0, sizeof(*key1));
     free(ClearData);
     free(EncData);
     free(key0);
-    free(key1);  
+    free(key1);    
 }
 
 
