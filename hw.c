@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "crypto_lib/aes.c"
+#include "crypto_lib/sha256.c"
 
 #define MAX_FILE_SIZE     4096        // for simplification
 #define ENCRYPTED_FILE_SUFFIX   ".enc"
@@ -191,16 +192,33 @@ F_DATA *DecodeData(F_DATA *DataToDecode, BYTE key[], int keysize, BYTE iv[]){
     return ClearData;
 }
 
+BYTE *gen_key(char *pwd){
+    //BYTE buf[SHA256_BLOCK_SIZE];
+    BYTE            *buf;
+    SHA256_CTX      ctx;
+	int             idx;
 
-void EncodeFile(char *InputFilename, BYTE key[]) { 
+    buf = malloc(SHA256_BLOCK_SIZE);
+    sha256_init(&ctx);
+	for (idx = 0; idx < 100000; ++idx)
+	    sha256_update(&ctx, pwd, strlen(pwd));
+	sha256_final(&ctx, buf);
+
+    return buf;
+}
+
+
+void EncodeFile(char *InputFilename, char *pwd) { 
     F_DATA          *ClearData;          
     F_DATA          *EncData;          
     char            OutputFilename[PATH_MAX];
     BYTE iv[IV_LEN] = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f};
-    
+    BYTE            *key;
+
     ClearData = ReadFile(InputFilename);    
 
-    //generate IV here pass it to function
+    //generate key and IV here pass it to function
+    key = gen_key(pwd);
     EncData = EncodeData(ClearData, key, 256, iv);
 
     strcpy(OutputFilename, InputFilename);
@@ -209,22 +227,24 @@ void EncodeFile(char *InputFilename, BYTE key[]) {
     WriteFile(EncData, OutputFilename);
     free(ClearData);
     free(EncData);
-    
+    free(key);    
 }
 
 
-void DecodeFile(char *InputFilename, BYTE key[]) {  
+void DecodeFile(char *InputFilename, char *pwd) {  
     F_DATA          *EncData;          
     F_DATA          *ClearData;          
     char            OutputFilename[PATH_MAX];
     BYTE            iv[IV_LEN];
+    BYTE            *key;
     
     strcpy(OutputFilename, InputFilename);
     strcat(OutputFilename, ENCRYPTED_FILE_SUFFIX);
     
     EncData = ReadFile(OutputFilename); 
 
-    //extract IV from EncData and pass it to decodeData
+    //gen key, extract IV from EncData and pass it to decodeData
+    key = gen_key(pwd);
     memcpy(iv, EncData->Data, IV_LEN);
 
     ClearData = DecodeData(EncData, key, 256, iv);
@@ -232,6 +252,7 @@ void DecodeFile(char *InputFilename, BYTE key[]) {
     WriteFile(ClearData, InputFilename);
     free(ClearData);
     free(EncData);
+    free(key);
 }
 
 
@@ -239,13 +260,10 @@ void DecodeFile(char *InputFilename, BYTE key[]) {
 int main() {
 
     char    *InputFilename = "test.txt";
+    char    *pwd = "rv12345";
     
-    BYTE key[1][32] = {  //32*8=256 (sha-256)
-		{0x60,0x3d,0xeb,0x10,0x15,0xca,0x71,0xbe,0x2b,0x73,0xae,0xf0,0x85,0x7d,0x77,0x81,0x1f,0x35,0x2c,0x07,0x3b,0x61,0x08,0xd7,0x2d,0x98,0x10,0xa3,0x09,0x14,0xdf,0xf4}
-	};
-
-    EncodeFile(InputFilename, key[0]);
-    DecodeFile(InputFilename, key[0]);
-
+    EncodeFile(InputFilename, pwd);
+    DecodeFile(InputFilename, pwd);
+    
     return 0;
 }
