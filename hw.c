@@ -80,7 +80,7 @@ F_DATA *ReadFile(char *InputFilename){
 
 }
 
-void xor(const BYTE in[], BYTE out[], size_t len)
+void xor(const BYTE *in, BYTE *out, size_t len)
 {
 	size_t idx;
 
@@ -192,20 +192,28 @@ F_DATA *DecodeData(F_DATA *DataToDecode, BYTE key[], int keysize, BYTE iv[]){
     return ClearData;
 }
 
-BYTE *gen_key(char *pwd){
+BYTE *gen_key(char *pwd, char *type){
     //BYTE buf[SHA256_BLOCK_SIZE];
     BYTE            *buf;
     SHA256_CTX      ctx;
 	int             idx;
+    char            *p_text;
 
     buf = malloc(SHA256_BLOCK_SIZE);
+    p_text = malloc(strlen(pwd)+strlen(type));
+    memcpy(p_text, pwd, strlen(pwd));
+    memcpy(p_text+strlen(pwd), type, strlen(type));
+
     sha256_init(&ctx);
-	for (idx = 0; idx < 100000; ++idx)
-	    sha256_update(&ctx, pwd, strlen(pwd));
+	for (idx = 0; idx < 10000; ++idx)
+	    sha256_update(&ctx, p_text, strlen(pwd)+strlen(type));
 	sha256_final(&ctx, buf);
+    free(p_text);
 
     return buf;
 }
+
+
 
 
 void EncodeFile(char *InputFilename, char *pwd) { 
@@ -218,7 +226,7 @@ void EncodeFile(char *InputFilename, char *pwd) {
     ClearData = ReadFile(InputFilename);    
 
     //generate key and IV here pass it to function
-    key = gen_key(pwd);
+    key = gen_key(pwd, "confidentiality");
     EncData = EncodeData(ClearData, key, 256, iv);
 
     strcpy(OutputFilename, InputFilename);
@@ -244,7 +252,7 @@ void DecodeFile(char *InputFilename, char *pwd) {
     EncData = ReadFile(OutputFilename); 
 
     //gen key, extract IV from EncData and pass it to decodeData
-    key = gen_key(pwd);
+    key = gen_key(pwd, "confidentiality");
     memcpy(iv, EncData->Data, IV_LEN);
 
     ClearData = DecodeData(EncData, key, 256, iv);
