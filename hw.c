@@ -130,16 +130,17 @@ BYTE *HMAC(BYTE *key, BYTE *m, size_t len){
 	sha256_update(&ctx, buf1, 2*SHA256_BLOCK_SIZE);
 	sha256_final(&ctx, buf0);
     free(buf1);
+
     return buf0;
 
 } 
 
 
-F_DATA *EncodeData(F_DATA *DataToEncode, BYTE key[], int keysize, BYTE iv[]){
+F_DATA *EncodeData(F_DATA *DataToEncode, BYTE *key0, BYTE *key1, int keysize, BYTE iv[]){
     BYTE        buf_in[AES_BLOCK_SIZE], buf_out[AES_BLOCK_SIZE], iv_buf[AES_BLOCK_SIZE];
     F_DATA      *EncryptedData;  
     WORD        key_schedule[60];
-    BYTE        *new_data, *enc_buf, *whole; 
+    BYTE        *new_data, *enc_buf, *whole, *M; 
     int         blocks, idx, nl, ti;
 
     //length of padded data
@@ -165,7 +166,7 @@ F_DATA *EncodeData(F_DATA *DataToEncode, BYTE key[], int keysize, BYTE iv[]){
     }     
 
     //encrypt data
-    aes_key_setup(key, key_schedule, keysize);
+    aes_key_setup(key0, key_schedule, keysize);
     blocks = nl / AES_BLOCK_SIZE;
     memcpy(iv_buf, iv, AES_BLOCK_SIZE);   
     for (idx = 0; idx < blocks; idx++) {
@@ -184,33 +185,54 @@ F_DATA *EncodeData(F_DATA *DataToEncode, BYTE key[], int keysize, BYTE iv[]){
     memcpy(whole+IV_LEN, enc_buf, nl);
     //release enc_buf
     free(enc_buf);
-   
+
+    //generate MAC and append to message
+    M = HMAC(key1, whole, nl + IV_LEN);
+    enc_buf = (BYTE *) malloc (nl + IV_LEN + SHA256_BLOCK_SIZE);
+    memcpy(enc_buf, whole, nl + IV_LEN);
+    memcpy(enc_buf + nl + IV_LEN, M, SHA256_BLOCK_SIZE);
+    free(whole);  
+    free(M);
+
     //generate struct to return
     EncryptedData = malloc(sizeof(F_DATA));
-    EncryptedData->Data = (char *) malloc (nl+IV_LEN);  //consider IV lenght   
-    EncryptedData->Length = nl+IV_LEN; //consider IV lenght
-    memcpy(EncryptedData->Data, whole, nl+IV_LEN); 
-    free(whole);  
+    EncryptedData->Data = (char *) malloc (nl + IV_LEN + SHA256_BLOCK_SIZE);  //consider IV lenght  and HMAC
+    EncryptedData->Length = nl + IV_LEN + SHA256_BLOCK_SIZE; //consider IV lenght and HMAC
+    memcpy(EncryptedData->Data, enc_buf, nl + IV_LEN + SHA256_BLOCK_SIZE); 
+    free(enc_buf);  
+    
 
     return EncryptedData;
 }
 
 
-F_DATA *DecodeData(F_DATA *DataToDecode, BYTE key[], int keysize, BYTE iv[]){
+F_DATA *DecodeData(F_DATA *DataToDecode, BYTE *key0, BYTE *key1, int keysize, BYTE iv[]){
     BYTE        buf_in[AES_BLOCK_SIZE], buf_out[AES_BLOCK_SIZE], iv_buf[AES_BLOCK_SIZE];
     F_DATA      *ClearData;  
     WORD        key_schedule[60];
-    BYTE        *enc_buf;
-    int         blocks, idx, ol;
+    BYTE        *enc_buf, *orig_message, *M;
+    int         blocks, idx, ol, om;
     char        cc;
 
+    //check MAC
+    om = DataToDecode->Length-SHA256_BLOCK_SIZE;
+    orig_message = (char *) malloc (om);
+    memcpy(orig_message, DataToDecode->Data, om); 
+    M = HMAC(key1, orig_message, om);
+    if(memcmp(M, &DataToDecode->Data[om], SHA256_BLOCK_SIZE)){   
+
+        printf("either data has been tampered or password is incorrect");
+        exit(1);
+    }
+    free(orig_message);
+
     //malloc memory to store decoded 
-    enc_buf = (BYTE *) malloc (DataToDecode->Length);
-    ol = DataToDecode->Length;
+    enc_buf = (BYTE *) malloc (om);
+    ol = om;
 
-    aes_key_setup(key, key_schedule, keysize);   
+    aes_key_setup(key0, key_schedule, keysize);   
 
-    blocks = DataToDecode->Length / AES_BLOCK_SIZE;
+    blocks = om / AES_BLOCK_SIZE;
     memcpy(iv_buf, iv, AES_BLOCK_SIZE);
 
 	for (idx = 0; idx < blocks; idx++) {
@@ -228,18 +250,18 @@ F_DATA *DecodeData(F_DATA *DataToDecode, BYTE key[], int keysize, BYTE iv[]){
     }
     ol--;    
     
+    
     ClearData = malloc(sizeof(F_DATA));
     ClearData->Data = (char *) malloc (ol-IV_LEN);  //extract iv length
     ClearData->Length = ol-IV_LEN; //extract iv length
 
     memcpy(ClearData->Data, enc_buf+IV_LEN, ol-IV_LEN); //extract iv length (enc_buf+ivlength)
-    free(enc_buf);
+    free(enc_buf);    
 
     return ClearData;
 }
 
 BYTE *gen_key(char *pwd, char *type){
-    //BYTE buf[SHA256_BLOCK_SIZE];
     BYTE            *buf;
     SHA256_CTX      ctx;
 	int             idx;
@@ -267,13 +289,14 @@ void EncodeFile(char *InputFilename, char *pwd) {
     F_DATA          *EncData;          
     char            OutputFilename[PATH_MAX];
     BYTE iv[IV_LEN] = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f};
-    BYTE            *key;
+    BYTE            *key0, *key1;
 
     ClearData = ReadFile(InputFilename);    
 
     //generate key and IV here pass it to function
-    key = gen_key(pwd, "confidentiality");
-    EncData = EncodeData(ClearData, key, 256, iv);
+    key0 = gen_key(pwd, "confidentiality");
+    key1 = gen_key(pwd, "integrity");
+    EncData = EncodeData(ClearData, key0, key1, 256, iv);
 
     strcpy(OutputFilename, InputFilename);
     strcat(OutputFilename, ENCRYPTED_FILE_SUFFIX);
@@ -281,7 +304,8 @@ void EncodeFile(char *InputFilename, char *pwd) {
     WriteFile(EncData, OutputFilename);
     free(ClearData);
     free(EncData);
-    free(key);    
+    free(key0);
+    free(key1);    
 }
 
 
@@ -290,7 +314,7 @@ void DecodeFile(char *InputFilename, char *pwd) {
     F_DATA          *ClearData;          
     char            OutputFilename[PATH_MAX];
     BYTE            iv[IV_LEN];
-    BYTE            *key;
+    BYTE            *key0, *key1;
     
     strcpy(OutputFilename, InputFilename);
     strcat(OutputFilename, ENCRYPTED_FILE_SUFFIX);
@@ -298,15 +322,17 @@ void DecodeFile(char *InputFilename, char *pwd) {
     EncData = ReadFile(OutputFilename); 
 
     //gen key, extract IV from EncData and pass it to decodeData
-    key = gen_key(pwd, "confidentiality");
+    key0 = gen_key(pwd, "confidentiality");
+    key1 = gen_key(pwd, "integrity");
     memcpy(iv, EncData->Data, IV_LEN);
 
-    ClearData = DecodeData(EncData, key, 256, iv);
+    ClearData = DecodeData(EncData, key0, key1, 256, iv);
 
-    WriteFile(ClearData, InputFilename);
+    //WriteFile(ClearData, InputFilename);
     free(ClearData);
     free(EncData);
-    free(key);
+    free(key0);
+    free(key1);  
 }
 
 
@@ -315,13 +341,10 @@ int main() {
 
     char    *InputFilename = "test.txt";
     char    *pwd = "rv12345";
-    char    *key, *M; 
-    
-    //EncodeFile(InputFilename, pwd);
-    //DecodeFile(InputFilename, pwd);
+       
+    EncodeFile(InputFilename, pwd);
+    DecodeFile(InputFilename, pwd);
 
-    key = gen_key(pwd, "integrity");
-    M = HMAC(key, "Hello World!", 12);
-    
+     
     return 0;
 }
