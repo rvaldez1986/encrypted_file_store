@@ -12,6 +12,9 @@
 #define IV_LEN 16
 //#define PATH_MAX                 256        // for simplification
 
+
+//Need to work on api
+
 typedef struct f_data{
     int Length;/* in bytes */
     char *Data;
