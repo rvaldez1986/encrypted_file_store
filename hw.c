@@ -4,7 +4,7 @@
 #include "crypto_lib/aes.c"
 #include "crypto_lib/sha256.c"
 
-#define MAX_FILE_SIZE     4096        // for simplification
+#define MAX_FILE_SIZE     400096        // max setup
 #define ENCRYPTED_FILE_SUFFIX   ".enc"
 #define END_BYTE   0x10
 #define PAD_BYTE    0x00
@@ -14,6 +14,36 @@
 
 
 //Need to work on api
+//HMAC work
+/**
+//generate HMAC and append to message
+    M = HMAC(key1, whole, nl + IV_LEN);
+    enc_buf = (BYTE *) malloc (nl + IV_LEN + SHA256_BLOCK_SIZE);
+    memcpy(enc_buf, whole, nl + IV_LEN);
+    memcpy(enc_buf + nl + IV_LEN, M, SHA256_BLOCK_SIZE);
+    //0 and release whole and M
+    memset(whole, 0, sizeof(*whole));
+    memset(M, 0, sizeof(*M));
+    free(whole);  
+    free(M);
+
+//check HMAC
+    om = DataToDecode->Length-SHA256_BLOCK_SIZE;
+    orig_message = (char *) malloc (om);
+    memcpy(orig_message, DataToDecode->Data, om); 
+    M = HMAC(key1, orig_message, om);
+    if(memcmp(M, &DataToDecode->Data[om], SHA256_BLOCK_SIZE)){   
+
+        printf("either data has been tampered or password is incorrect\nCannot extract file");
+        exit(1);
+    }
+    //0 and release orig_message
+    memset(orig_message, 0, sizeof(*orig_message)); 
+    free(orig_message);
+
+**/
+
+
 
 typedef struct f_data{
     int Length;/* in bytes */
@@ -143,7 +173,7 @@ F_DATA *EncodeData(F_DATA *DataToEncode, BYTE *key0, BYTE *key1, int keysize, BY
     BYTE        buf_in[AES_BLOCK_SIZE], buf_out[AES_BLOCK_SIZE], iv_buf[AES_BLOCK_SIZE];
     F_DATA      *EncryptedData;  
     WORD        key_schedule[60];
-    BYTE        *new_data, *enc_buf, *whole, *M; 
+    BYTE        *new_data, *enc_buf, *whole; 
     int         blocks, idx, nl, ti;
 
     //length of padded data
@@ -189,27 +219,16 @@ F_DATA *EncodeData(F_DATA *DataToEncode, BYTE *key0, BYTE *key1, int keysize, BY
     memcpy(whole+IV_LEN, enc_buf, nl);
     //0 and release enc_buf
     memset(enc_buf, 0, sizeof(*enc_buf));
-    free(enc_buf);
-
-    //generate HMAC and append to message
-    M = HMAC(key1, whole, nl + IV_LEN);
-    enc_buf = (BYTE *) malloc (nl + IV_LEN + SHA256_BLOCK_SIZE);
-    memcpy(enc_buf, whole, nl + IV_LEN);
-    memcpy(enc_buf + nl + IV_LEN, M, SHA256_BLOCK_SIZE);
-    //0 and release whole and M
-    memset(whole, 0, sizeof(*whole));
-    memset(M, 0, sizeof(*M));
-    free(whole);  
-    free(M);
+    free(enc_buf);    
 
     //generate struct to return
     EncryptedData = malloc(sizeof(F_DATA));
-    EncryptedData->Data = (char *) malloc (nl + IV_LEN + SHA256_BLOCK_SIZE);  //consider IV lenght  and HMAC
-    EncryptedData->Length = nl + IV_LEN + SHA256_BLOCK_SIZE; //consider IV lenght and HMAC
-    memcpy(EncryptedData->Data, enc_buf, nl + IV_LEN + SHA256_BLOCK_SIZE);
+    EncryptedData->Data = (char *) malloc (nl + IV_LEN);  //consider IV lenght 
+    EncryptedData->Length = nl + IV_LEN; //consider IV lenght
+    memcpy(EncryptedData->Data, whole, nl + IV_LEN);
     //0 and release enc_buf
-    memset(enc_buf, 0, sizeof(*enc_buf)); 
-    free(enc_buf);  
+    memset(whole, 0, sizeof(*whole)); 
+    free(whole);  
     
 
     return EncryptedData;
@@ -220,31 +239,19 @@ F_DATA *DecodeData(F_DATA *DataToDecode, BYTE *key0, BYTE *key1, int keysize, BY
     BYTE        buf_in[AES_BLOCK_SIZE], buf_out[AES_BLOCK_SIZE], iv_buf[AES_BLOCK_SIZE];
     F_DATA      *ClearData;  
     WORD        key_schedule[60];
-    BYTE        *enc_buf, *orig_message, *M;
-    int         blocks, idx, ol, om;
+    BYTE        *enc_buf;
+    int         blocks, idx, ol;
     char        cc;
 
     //check HMAC
-    om = DataToDecode->Length-SHA256_BLOCK_SIZE;
-    orig_message = (char *) malloc (om);
-    memcpy(orig_message, DataToDecode->Data, om); 
-    M = HMAC(key1, orig_message, om);
-    if(memcmp(M, &DataToDecode->Data[om], SHA256_BLOCK_SIZE)){   
-
-        printf("either data has been tampered or password is incorrect\nCannot extract file");
-        exit(1);
-    }
-    //0 and release orig_message
-    memset(orig_message, 0, sizeof(*orig_message)); 
-    free(orig_message);
-
+    ol = DataToDecode->Length;
+    
     //malloc memory to store decoded 
-    enc_buf = (BYTE *) malloc (om);
-    ol = om;
-
+    enc_buf = (BYTE *) malloc (ol);
+    
     //decrypt message in DataToDecode->Data, decoded moves to enc_buf
     aes_key_setup(key0, key_schedule, keysize);
-    blocks = om / AES_BLOCK_SIZE;
+    blocks = ol / AES_BLOCK_SIZE;
     memcpy(iv_buf, iv, AES_BLOCK_SIZE);
 	for (idx = 0; idx < blocks; idx++) {
 		memcpy(buf_in, &DataToDecode->Data[idx * AES_BLOCK_SIZE], AES_BLOCK_SIZE);
@@ -365,7 +372,7 @@ void DecodeFile(char *InputFilename, char *pwd) {
 
 int main() {
 
-    char    *InputFilename = "test.txt";
+    char    *InputFilename = "test.pdf";
     char    *pwd = "rv12345";
        
     EncodeFile(InputFilename, pwd);
