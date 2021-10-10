@@ -79,9 +79,9 @@ void WriteFile(
 void DeleteFile(char *Filename)
 {
    if (remove(Filename) == 0)
-      printf("Deleted successfully");
+      printf("Deleted successfully\n");
    else
-      printf("Unable to delete the file");
+      printf("Unable to delete the file\n");
 }  
 
 
@@ -100,11 +100,7 @@ F_DATA *ReadFile(char *InputFilename){
     }
     BytesRead = fread(FileBuf, 1, MAX_FILE_SIZE, File);
     
-    if (BytesRead == 0)
-    {
-        printf("Error: did not read any bytes from file\n");
-        exit(1);
-    }
+    
     if (!feof(File))
     {
        printf("Error: exceeded currently supported maximum file size\n");
@@ -237,8 +233,7 @@ F_DATA *EncodeData(F_DATA *DataToEncode, BYTE *key0, BYTE *key1, int keysize, BY
     memcpy(EncryptedData->Data, whole, nl + IV_LEN);
     //0 and release enc_buf
     memset(whole, 0, sizeof(*whole)); 
-    free(whole);  
-    
+    free(whole);    
 
     return EncryptedData;
 }
@@ -315,45 +310,85 @@ BYTE *gen_key(char *pwd, char *type){
 
 
 
-void WriteToArchive(F_DATA *EncData, char *InputFilename, char *ArchFilename){
-    //HMAC was already validated
+void WriteToArchive(F_DATA *EncData, F_DATA *ArchData, char *InputFilename, char *ArchFilename){
+    F_DATA          *NewArchData; 
+    BYTE            *enc_buf, *whole;   
+    int             len;
 
-    //read ArchData    
-           
-    //enc_buf = malloc size EncData + Filename size + 8 (for 2 ints)
-
-    //copy to enc_buf |name length|name|file length|file
+    //HMAC was already validated, ArchData has length 0 if empty
+    //malloc memory to store encoded data
+    //enc_buf = size EncData + Filename size + 8 (for 2 ints)
+    len = strlen(InputFilename);
+    enc_buf = (BYTE *) malloc (EncData->Length + len + 8);     
+    
+    //copy to enc_buf |name length|name|file length|file     
+    memcpy(enc_buf, &len, 4);
+    memcpy(enc_buf+4, InputFilename, len);
+    memcpy(enc_buf+4+len, &EncData->Length, 4);       
+    memcpy(enc_buf+4+len+4, EncData->Data, EncData->Length);    
 
     //whole = malloc size enc_buf + (size of ArchData - HMAC_SIZE if ArchData is not empty)
     //copy ArchData (without HMAC) to whole (if ArchData is not empty)
-    //release ArchData
     //copy enc_buf to whole next to it
+    if(ArchData->Length){
+        whole = (BYTE *) malloc (EncData->Length + len + 8 + ArchData->Length - SHA256_BLOCK_SIZE);
+        memcpy(whole, &ArchData->Data[SHA256_BLOCK_SIZE], ArchData->Length - SHA256_BLOCK_SIZE);
+        memcpy(whole + ArchData->Length - SHA256_BLOCK_SIZE, enc_buf, EncData->Length + len + 8);
+        len = EncData->Length + len + 8 + ArchData->Length - SHA256_BLOCK_SIZE;
+    }else{
+        whole = (BYTE *) malloc (EncData->Length + len + 8);
+        memcpy(whole, enc_buf, EncData->Length + len + 8);
+        len = EncData->Length + len + 8;
+    }
     //release enc_buf
+    free(enc_buf);
+    free(ArchData->Data);
+    free(ArchData);
 
-    //calculate HMAC of whole
+    //calculate HMAC of whole (jump for now)
     //enc_buf = malloc size of whole + HMAC
     //copy HMAC to  enc_buf
     //copy whole to enc_buf
     //release whole
 
-    //create new F_DATA
-    //store enc_buf and enc_buf length
+    //malloc F_DATA structure to write to Archive
+    //store enc_buf and enc_buf length (whole for now)    
+    NewArchData = malloc(sizeof(F_DATA));
+    NewArchData->Data = (char *) malloc (len);  
+    NewArchData->Length = len; 
+    memcpy(NewArchData->Data, whole, len); //whole for now
+    free(whole);
 
-    //writeFile(archive)
-
-    printf("Im not developed yet");
+    //write Archive file with new info
+    DeleteFile(ArchFilename);
+    WriteFile(NewArchData, ArchFilename);
 
 }
 
 
 F_DATA *ReadFromArchive(F_DATA *ArchData, int pos){
+    F_DATA          *EncData; 
+    BYTE            *enc_buf;
+    int             len;
+
     //HMAC was already validated    
     
-    //extract file length, and file
-    //create F_Data
-    //return it
+    //extract file length
+    memcpy(&len, &ArchData->Data[pos], 4);
+        
+    //malloc file length for F_DATA
+    EncData = malloc(sizeof(F_DATA));
+    EncData->Data = (char *) malloc (len);  
+    EncData->Length = len;
 
-    printf("Im not developed yet");
+    //Copy to data
+    memcpy(EncData->Data, &ArchData->Data[pos+4], len); 
+    //free enc_buf
+    free(enc_buf);
+
+        
+    return EncData;
+    
 
 }
 
