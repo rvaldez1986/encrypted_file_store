@@ -76,6 +76,15 @@ void WriteFile(
     fclose(OutputFile);
 }
 
+void DeleteFile(char *Filename)
+{
+   if (remove(Filename) == 0)
+      printf("Deleted successfully");
+   else
+      printf("Unable to delete the file");
+}  
+
+
 
 F_DATA *ReadFile(char *InputFilename){
     FILE            *File;         
@@ -306,6 +315,56 @@ BYTE *gen_key(char *pwd, char *type){
 
 
 
+void WriteToArchive(F_DATA *EncData, char *InputFilename, char *ArchFilename){
+    //HMAC was already validated
+
+    //read ArchData    
+           
+    //enc_buf = malloc size EncData + Filename size + 8 (for 2 ints)
+
+    //copy to enc_buf |name length|name|file length|file
+
+    //whole = malloc size enc_buf + (size of ArchData - HMAC_SIZE if ArchData is not empty)
+    //copy ArchData (without HMAC) to whole (if ArchData is not empty)
+    //release ArchData
+    //copy enc_buf to whole next to it
+    //release enc_buf
+
+    //calculate HMAC of whole
+    //enc_buf = malloc size of whole + HMAC
+    //copy HMAC to  enc_buf
+    //copy whole to enc_buf
+    //release whole
+
+    //create new F_DATA
+    //store enc_buf and enc_buf length
+
+    //writeFile(archive)
+
+    printf("Im not developed yet");
+
+}
+
+
+F_DATA *ReadFromArchive(F_DATA *ArchData, int pos){
+    //HMAC was already validated    
+    
+    //extract file length, and file
+    //create F_Data
+    //return it
+
+    printf("Im not developed yet");
+
+}
+
+
+int find_pos(F_DATA *ArchData, char *InputFilename){
+    //find position of file in archive
+    printf("Im not developed yet");
+    return 0;
+}
+
+
 
 void EncodeFile(char *InputFilename, char *pwd) { 
     F_DATA          *ClearData;          
@@ -372,7 +431,7 @@ void DecodeFile(char *InputFilename, char *pwd) {
 
 int main() {
 
-    char    *InputFilename = "test.pdf";
+    char    *InputFilename = "HW1.pdf";
     char    *pwd = "rv12345";
        
     EncodeFile(InputFilename, pwd);
