@@ -78,9 +78,7 @@ void WriteFile(
 
 void DeleteFile(char *Filename)
 {
-   if (remove(Filename) == 0)
-      printf("Deleted successfully\n");
-   else
+   if (remove(Filename))   
       printf("Unable to delete the file\n");
 }  
 
@@ -89,8 +87,10 @@ void DeleteFile(char *Filename)
 F_DATA *ReadFile(char *InputFilename){
     FILE            *File;         
     int             BytesRead;         
-    unsigned char   FileBuf[MAX_FILE_SIZE]; 
-    F_DATA          *FileData;          
+    char            *FileBuf; 
+    F_DATA          *FileData;  
+
+    FileBuf =  (char *) malloc (MAX_FILE_SIZE);    
     
     if ((File = fopen(InputFilename, "rb")) == NULL)
     {
@@ -310,10 +310,21 @@ BYTE *gen_key(char *pwd, char *type){
 
 
 
-void WriteToArchive(F_DATA *EncData, F_DATA *ArchData, char *InputFilename, char *ArchFilename){
+void WriteToArchive(
+                    F_DATA *EncData, 
+                    F_DATA *ArchData, 
+                    char *InputFilename, 
+                    char *ArchFilename,
+                    BYTE *key1){
+
     F_DATA          *NewArchData; 
-    BYTE            *enc_buf, *whole;   
-    int             len;
+    BYTE            *enc_buf, *whole, *M;   
+    int             len, check;
+
+    if(ArchData->Length){
+        memcpy(&check, &ArchData->Data[SHA256_BLOCK_SIZE + 12], 4);
+        printf("read in  WriteToArchive is: %i\n", check);
+    }
 
     //HMAC was already validated, ArchData has length 0 if empty
     //malloc memory to store encoded data
@@ -332,6 +343,10 @@ void WriteToArchive(F_DATA *EncData, F_DATA *ArchData, char *InputFilename, char
     //copy enc_buf to whole next to it
     if(ArchData->Length){
         whole = (BYTE *) malloc (EncData->Length + len + 8 + ArchData->Length - SHA256_BLOCK_SIZE);
+        
+        memcpy(&check, &ArchData->Data[SHA256_BLOCK_SIZE + 12], 4);
+        printf("check  inside if is: %i\n", check);
+
         memcpy(whole, &ArchData->Data[SHA256_BLOCK_SIZE], ArchData->Length - SHA256_BLOCK_SIZE);
         memcpy(whole + ArchData->Length - SHA256_BLOCK_SIZE, enc_buf, EncData->Length + len + 8);
         len = EncData->Length + len + 8 + ArchData->Length - SHA256_BLOCK_SIZE;
@@ -340,24 +355,35 @@ void WriteToArchive(F_DATA *EncData, F_DATA *ArchData, char *InputFilename, char
         memcpy(whole, enc_buf, EncData->Length + len + 8);
         len = EncData->Length + len + 8;
     }
+    
+    
     //release enc_buf
     free(enc_buf);
     free(ArchData->Data);
     free(ArchData);
 
-    //calculate HMAC of whole (jump for now)
+    //calculate HMAC of whole 
+    M = HMAC(key1, whole, len);
+
     //enc_buf = malloc size of whole + HMAC
+    enc_buf = (BYTE *) malloc (len+SHA256_BLOCK_SIZE); 
     //copy HMAC to  enc_buf
+    memcpy(enc_buf, M, SHA256_BLOCK_SIZE);     
     //copy whole to enc_buf
+    memcpy(enc_buf+SHA256_BLOCK_SIZE, whole, len);     
     //release whole
+    free(whole);
 
     //malloc F_DATA structure to write to Archive
-    //store enc_buf and enc_buf length (whole for now)    
+    //store enc_buf and enc_buf length 
     NewArchData = malloc(sizeof(F_DATA));
-    NewArchData->Data = (char *) malloc (len);  
-    NewArchData->Length = len; 
-    memcpy(NewArchData->Data, whole, len); //whole for now
-    free(whole);
+    NewArchData->Data = (char *) malloc (len+SHA256_BLOCK_SIZE);  
+    NewArchData->Length = len+SHA256_BLOCK_SIZE; 
+    memcpy(NewArchData->Data, enc_buf, len+SHA256_BLOCK_SIZE); 
+    free(enc_buf);
+
+    memcpy(&check, &NewArchData->Data[SHA256_BLOCK_SIZE + 12], 4);
+    printf("check when we save is: %i\n", check);
 
     //write Archive file with new info
     DeleteFile(ArchFilename);
@@ -368,24 +394,28 @@ void WriteToArchive(F_DATA *EncData, F_DATA *ArchData, char *InputFilename, char
 
 F_DATA *ReadFromArchive(F_DATA *ArchData, int pos){
     F_DATA          *EncData; 
-    BYTE            *enc_buf;
     int             len;
 
     //HMAC was already validated    
     
     //extract file length
     memcpy(&len, &ArchData->Data[pos], 4);
+
+    printf("read bytes %i\n", len);
+
+    
         
     //malloc file length for F_DATA
     EncData = malloc(sizeof(F_DATA));
     EncData->Data = (char *) malloc (len);  
     EncData->Length = len;
 
+    
     //Copy to data
     memcpy(EncData->Data, &ArchData->Data[pos+4], len); 
-    //free enc_buf
-    free(enc_buf);
 
+   
+    
         
     return EncData;
     
