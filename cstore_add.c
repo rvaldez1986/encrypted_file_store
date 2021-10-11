@@ -39,7 +39,7 @@ void EncodeFile(char *ArchFilename, char *InputFilename, char *pwd) {
 
     WriteToArchive(EncData, ArchData, InputFilename, ArchFilename, key1);
     //delete InputFileName
-    
+    DeleteFile(InputFilename);
 
 }
 
@@ -94,11 +94,9 @@ int main() {
 
     char    *ArchFilename = "archive";
     char    *InputFilename = "test.txt";
-    char    *InputFilename1 = "test1.pdf";
     char    *pwd = "rv12345";
        
-    EncodeFile(ArchFilename, InputFilename, pwd);
-    EncodeFile(ArchFilename, InputFilename1, pwd);
+    //EncodeFile(ArchFilename, InputFilename, pwd);
     DecodeFile(ArchFilename, InputFilename, pwd);
     
 

@@ -14,18 +14,7 @@
 
 
 //Need to work on api
-//HMAC work
 /**
-//generate HMAC and append to message
-    M = HMAC(key1, whole, nl + IV_LEN);
-    enc_buf = (BYTE *) malloc (nl + IV_LEN + SHA256_BLOCK_SIZE);
-    memcpy(enc_buf, whole, nl + IV_LEN);
-    memcpy(enc_buf + nl + IV_LEN, M, SHA256_BLOCK_SIZE);
-    //0 and release whole and M
-    memset(whole, 0, sizeof(*whole));
-    memset(M, 0, sizeof(*M));
-    free(whole);  
-    free(M);
 
 //check HMAC
     om = DataToDecode->Length-SHA256_BLOCK_SIZE;
