@@ -308,18 +308,18 @@ void WriteToArchive(
 
     F_DATA          *NewArchData; 
     BYTE            *enc_buf, *whole, *M;   
-    int             len, check;
+    int             len;
 
-    if(ArchData->Length){
-        memcpy(&check, &ArchData->Data[SHA256_BLOCK_SIZE + 12], 4);
-        printf("read in  WriteToArchive is: %i\n", check);
-    }
-
+    
     //HMAC was already validated, ArchData has length 0 if empty
     //malloc memory to store encoded data
     //enc_buf = size EncData + Filename size + 8 (for 2 ints)
     len = strlen(InputFilename);
-    enc_buf = (BYTE *) malloc (EncData->Length + len + 8);     
+    enc_buf = (BYTE *) malloc (EncData->Length + len + 8);  
+
+    printf("orig data size is %i\n", EncData->Length);
+    printf("enc_buf size is %i\n", EncData->Length + len + 8);
+
     
     //copy to enc_buf |name length|name|file length|file     
     memcpy(enc_buf, &len, 4);
@@ -331,18 +331,16 @@ void WriteToArchive(
     //copy ArchData (without HMAC) to whole (if ArchData is not empty)
     //copy enc_buf to whole next to it
     if(ArchData->Length){
-        whole = (BYTE *) malloc (EncData->Length + len + 8 + ArchData->Length - SHA256_BLOCK_SIZE);
-        
-        memcpy(&check, &ArchData->Data[SHA256_BLOCK_SIZE + 12], 4);
-        printf("check  inside if is: %i\n", check);
-
+        whole = (BYTE *) malloc (EncData->Length + len + 8 + ArchData->Length - SHA256_BLOCK_SIZE);   
         memcpy(whole, &ArchData->Data[SHA256_BLOCK_SIZE], ArchData->Length - SHA256_BLOCK_SIZE);
         memcpy(whole + ArchData->Length - SHA256_BLOCK_SIZE, enc_buf, EncData->Length + len + 8);
         len = EncData->Length + len + 8 + ArchData->Length - SHA256_BLOCK_SIZE;
+        printf("whole size is %i\n", len);
     }else{
         whole = (BYTE *) malloc (EncData->Length + len + 8);
         memcpy(whole, enc_buf, EncData->Length + len + 8);
         len = EncData->Length + len + 8;
+        printf("whole size is %i\n", len);
     }
     
     
@@ -371,9 +369,7 @@ void WriteToArchive(
     memcpy(NewArchData->Data, enc_buf, len+SHA256_BLOCK_SIZE); 
     free(enc_buf);
 
-    memcpy(&check, &NewArchData->Data[SHA256_BLOCK_SIZE + 12], 4);
-    printf("check when we save is: %i\n", check);
-
+    printf("archData size is %i\n", len+SHA256_BLOCK_SIZE);    
     //write Archive file with new info
     DeleteFile(ArchFilename);
     WriteFile(NewArchData, ArchFilename);
@@ -390,9 +386,7 @@ F_DATA *ReadFromArchive(F_DATA *ArchData, int pos){
     //extract file length
     memcpy(&len, &ArchData->Data[pos], 4);
 
-    printf("read bytes %i\n", len);
-
-    
+      
         
     //malloc file length for F_DATA
     EncData = malloc(sizeof(F_DATA));
@@ -414,8 +408,55 @@ F_DATA *ReadFromArchive(F_DATA *ArchData, int pos){
 
 int find_pos(F_DATA *ArchData, char *InputFilename){
     //find position of file in archive
-    printf("Im not developed yet");
-    return 0;
+    int len, beg, ph, ind, ret;
+    char *place_holder;
+
+    len = ArchData->Length;
+    beg = SHA256_BLOCK_SIZE; //begin after HMAC
+    ind = 1;
+    ret = -1;
+
+    printf("len is %i\n", len);
+
+    while(ind){
+
+        printf("beg starts in %i\n", beg);
+        
+        memcpy(&ph, &ArchData->Data[beg], 4);
+        printf("size found is %i\n", ph);
+        place_holder = (char *) malloc (ph);
+        memcpy(place_holder, &ArchData->Data[beg+4], ph);
+        printf("memcmp gives us %i\n", memcmp(place_holder, InputFilename, ph));       
+            
+
+        if(memcmp(place_holder, InputFilename, ph)==0){
+            ret = beg+4+ph;
+            ind = 0;            
+        }else{
+            beg = beg+4+ph;
+            memcpy(&ph, &ArchData->Data[beg], 4);
+            beg += (ph+4);
+
+            if(beg>=len)
+                ind = 0;
+        }
+        
+        printf("beg ends in %i\n", beg);
+               
+
+    }
+
+
+
+    if(ret<0){
+        printf("File Name Not found!\n");
+        exit(1);
+    }
+
+    
+
+    
+    return ret;
 }
 
 
