@@ -4,40 +4,18 @@
 #include "crypto_lib/aes.c"
 #include "crypto_lib/sha256.c"
 
-#define MAX_FILE_SIZE     400096        // max setup
-#define ENCRYPTED_FILE_SUFFIX   ".enc"
+#define MAX_FILE_SIZE     400096        // max, setup to avoid memory problems
 #define END_BYTE   0x10
 #define PAD_BYTE    0x00
 #define AES_BLOCK_SIZE 16
 #define IV_LEN 16
 //#define PATH_MAX                 256        // for simplification
 
-
-//Need to work on api
-/**
-
-//check HMAC
-    om = DataToDecode->Length-SHA256_BLOCK_SIZE;
-    orig_message = (char *) malloc (om);
-    memcpy(orig_message, DataToDecode->Data, om); 
-    M = HMAC(key1, orig_message, om);
-    if(memcmp(M, &DataToDecode->Data[om], SHA256_BLOCK_SIZE)){   
-
-        printf("either data has been tampered or password is incorrect\nCannot extract file");
-        exit(1);
-    }
-    //0 and release orig_message
-    memset(orig_message, 0, sizeof(*orig_message)); 
-    free(orig_message);
-
-**/
-
-
-
 typedef struct f_data{
     int Length;/* in bytes */
     char *Data;
 } F_DATA;
+
 
 void WriteFile(
     F_DATA *DataToWrite,
@@ -73,7 +51,7 @@ void DeleteFile(char *Filename)
 
 
 
-F_DATA *ReadFile(char *InputFilename){
+F_DATA *ReadFile(char *InputFilename){  //ToDo Option in the case of Archive in where if
     FILE            *File;         
     int             BytesRead;         
     char            *FileBuf; 
@@ -83,6 +61,7 @@ F_DATA *ReadFile(char *InputFilename){
     
     if ((File = fopen(InputFilename, "rb")) == NULL)
     {
+        //ToDo Option in the case of Archive to write empty file
         printf("Error: could not open %s\n", InputFilename);
         perror("fopen");
         exit(1);
@@ -162,6 +141,17 @@ BYTE *HMAC(BYTE *key, BYTE *m, size_t len){
 
 } 
 
+BYTE *gen_iv(){
+    //generate IV of size IV_LEN
+    BYTE       *iv;
+    //malloc size IV_LEN
+
+    printf("Im not implemented yet\n");
+
+    return iv;
+
+}
+
 
 F_DATA *EncodeData(F_DATA *DataToEncode, BYTE *key0, BYTE *key1, int keysize, BYTE iv[]){
     BYTE        buf_in[AES_BLOCK_SIZE], buf_out[AES_BLOCK_SIZE], iv_buf[AES_BLOCK_SIZE];
@@ -236,7 +226,7 @@ F_DATA *DecodeData(F_DATA *DataToDecode, BYTE *key0, BYTE *key1, int keysize, BY
     int         blocks, idx, ol;
     char        cc;
 
-    //check HMAC
+    //HMAC validated
     ol = DataToDecode->Length;
     
     //malloc memory to store decoded 
@@ -296,6 +286,32 @@ BYTE *gen_key(char *pwd, char *type){
 
     return buf;
 }
+
+
+void ValidateHMAC(F_DATA *Data, BYTE *key1){
+    //check HMAC
+    int         om;
+    BYTE        *orig_message, *M;
+    
+    om = Data->Length-SHA256_BLOCK_SIZE;
+    orig_message = (char *) malloc (om);
+    memcpy(orig_message, &Data->Data[SHA256_BLOCK_SIZE], om); 
+    M = HMAC(key1, orig_message, om);
+    if(memcmp(M, Data->Data, SHA256_BLOCK_SIZE)){   
+
+        printf("either data has been tampered or password is incorrect\nCannot extract file");
+        exit(1);
+    }
+    //0 and release orig_message
+    memset(orig_message, 0, sizeof(*orig_message)); 
+    free(orig_message);
+    free(M);
+
+
+}
+
+
+
 
 
 
@@ -454,11 +470,41 @@ int find_pos(F_DATA *ArchData, char *InputFilename){
     }
 
     
-
+    printf("ret is %i\n", ret);
     
     return ret;
 }
 
+
+int find_beg(F_DATA *ArchData, char *InputFilename){
+
+    //find where data for InputFilename begins
+    //we can cleverly use find_pos and delete InputFilename size and 8
+    int pos, len;
+
+    pos = find_pos(ArchData, InputFilename);
+    printf("pos is %i\n", pos);
+    len = strlen(InputFilename);
+
+    return pos - len - 4;
+
+}
+
+int find_end(F_DATA *ArchData, char *InputFilename){
+
+    //find where data for InputFilename ends
+    //we can cleverly use find_pos, get file size substracting 4 and adding it to find_pos
+    int pos, ph;
+
+    pos = find_pos(ArchData, InputFilename);
+    printf("pos is %i\n", pos);
+    
+    memcpy(&ph, &ArchData->Data[pos], 4);
+
+    return pos + ph + 4; 
+
+
+}
 
 
 
