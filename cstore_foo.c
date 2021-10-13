@@ -175,7 +175,7 @@ int DeleteFromArch(char *ArchFilename, char *InputFilename, char *pwd) {
     DeleteFile(ArchFilename);    
     WriteFile(NewArchData, ArchFilename);    
 
-        
+    //ToDo: free stuff
     return 0;
 }
 
@@ -187,8 +187,8 @@ int ListFiles(char *ArchFilename) {
     F_DATA          *ArchData;
     char *place_holder;
     int beg, len, ind, ph;
-        
-    ArchData = ReadFile(ArchFilename, 0); //if archive doesnt exist return error
+
+    ArchData = ReadFile(ArchFilename, 1); //if archive doesnt exist read it anyways ?
 
     if(ArchData->Length == 0){
         printf("File empty\n"); 
@@ -218,6 +218,7 @@ int ListFiles(char *ArchFilename) {
         free(place_holder);
     }
 
+    //ToDo: free stuff
     return 0;
     
 
@@ -225,28 +226,3 @@ int ListFiles(char *ArchFilename) {
 }
 
 
-int main() {
-
-    char    *ArchFilename = "archive";
-    char    *InputFilename = "test.txt";
-    char    *InputFilename1 = "test0.txt";
-    char    *InputFilename2 = "test1.pdf";
-    char    *pwd = "rv12345";
-            
-    
-    EncodeFile(ArchFilename, InputFilename, pwd); 
-    EncodeFile(ArchFilename, InputFilename2, pwd);
-    EncodeFile(ArchFilename, InputFilename1, pwd);    
-    
-    DecodeFile(ArchFilename, InputFilename, pwd);
-    DecodeFile(ArchFilename, InputFilename2, pwd);
-    DecodeFile(ArchFilename, InputFilename1, pwd);
-
-    DeleteFromArch(ArchFilename, InputFilename2, pwd);
-
-    ListFiles(ArchFilename);
-       
-    
-     
-    return 0;
-}

@@ -73,7 +73,7 @@ F_DATA *ReadFile(char *InputFilename, int ind){
 
         }else{
 
-            printf("Error: could not open %s\n", InputFilename);
+            printf("Error: could not open or File does not exist %s\n", InputFilename);
             perror("fopen");
             exit(1);
         }
@@ -401,6 +401,8 @@ void WriteToArchive(
     //write Archive file with new info
     DeleteFile(ArchFilename);
     WriteFile(NewArchData, ArchFilename);
+
+    //ToDo: free stuff
 
 }
 
