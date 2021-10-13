@@ -46,6 +46,7 @@ void WriteFile(
     fclose(OutputFile);
 }
 
+
 void DeleteFile(char *Filename)
 {
     if (remove(Filename)){   

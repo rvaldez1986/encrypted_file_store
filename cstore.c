@@ -12,8 +12,11 @@ int main(int argc, char *argv[] ) {
     char    *InputFilename2 = "test1.pdf";
     char    *pwd = "rv12345";
 
-    if( argc == 2 ) {
-        printf("The argument supplied is %s\n", argv[1]);
+    if( argc >= 2 ) {
+
+        printf("The first argument supplied is %s\n", argv[1]);
+        printf("The second argument supplied is %s\n", argv[2]);
+        printf("The third argument supplied is %s\n", argv[3]);
         
         EncodeFile(ArchFilename, InputFilename, pwd); 
         EncodeFile(ArchFilename, InputFilename2, pwd);
@@ -26,13 +29,8 @@ int main(int argc, char *argv[] ) {
         DeleteFromArch(ArchFilename, InputFilename2, pwd);
 
         ListFiles(ArchFilename);
-    }
-
-                
-    
-    
-       
-    
+    }     
      
     return 0;
+
 }
