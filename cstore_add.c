@@ -9,7 +9,7 @@ void EncodeFile(char *ArchFilename, char *InputFilename, char *pwd) {
     BYTE            *key0, *key1;    
 
     //read arch data
-    ArchData = ReadFile(ArchFilename);
+    ArchData = ReadFile(ArchFilename, 1);
 
     
     //generate key and IV here
@@ -23,7 +23,7 @@ void EncodeFile(char *ArchFilename, char *InputFilename, char *pwd) {
 
     
     //read clear data and encode it
-    ClearData = ReadFile(InputFilename);
+    ClearData = ReadFile(InputFilename, 0);
 
     //generate IV
     //iv = 
@@ -50,7 +50,7 @@ void DecodeFile(char *ArchFilename, char *InputFilename, char *pwd) {
     int             pos;
 
     //read arch data
-    ArchData = ReadFile(ArchFilename);
+    ArchData = ReadFile(ArchFilename, 0); //if file does not exist return error
 
      
 
@@ -94,7 +94,7 @@ int DeleteFromArch(char *ArchFilename, char *InputFilename, char *pwd) {
     key1 = gen_key(pwd, "integrity");
 
     //read arch
-    ArchData = ReadFile(ArchFilename);
+    ArchData = ReadFile(ArchFilename, 0); //if archive doesnt exist return error
 
     if(ArchData->Length == 0){
         printf("Error: cannot delete from empty archive\n");
@@ -191,7 +191,7 @@ int ListFiles(char *ArchFilename) {
 
 
     
-    ArchData = ReadFile(ArchFilename);
+    ArchData = ReadFile(ArchFilename, 0); //if archive doesnt exist return error
 
     if(ArchData->Length == 0){
         printf("File empty\n"); 
@@ -235,17 +235,17 @@ int main() {
     char    *InputFilename1 = "test0.txt";
     char    *InputFilename2 = "test1.pdf";
     char    *pwd = "rv12345";
-           
+            
     
     EncodeFile(ArchFilename, InputFilename, pwd); 
     EncodeFile(ArchFilename, InputFilename2, pwd);
-    EncodeFile(ArchFilename, InputFilename1, pwd); 
-        
-    //DeleteFromArch(ArchFilename, InputFilename2, pwd);
+    EncodeFile(ArchFilename, InputFilename1, pwd);    
     
     DecodeFile(ArchFilename, InputFilename, pwd);
     DecodeFile(ArchFilename, InputFilename2, pwd);
     DecodeFile(ArchFilename, InputFilename1, pwd);
+
+    DeleteFromArch(ArchFilename, InputFilename2, pwd);
 
     ListFiles(ArchFilename);
        

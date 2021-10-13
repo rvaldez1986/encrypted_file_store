@@ -56,7 +56,7 @@ void DeleteFile(char *Filename)
 
 
 
-F_DATA *ReadFile(char *InputFilename){  
+F_DATA *ReadFile(char *InputFilename, int ind){  
     FILE            *File;         
     int             BytesRead;         
     char            *FileBuf; 
@@ -66,17 +66,23 @@ F_DATA *ReadFile(char *InputFilename){
     
     if ((File = fopen(InputFilename, "rb")) == NULL)
     {
-        //ToDo Option in the case of Archive to write empty file
-        printf("Error: could not open %s\n", InputFilename);
-        perror("fopen");
-        exit(1);
+        if(ind){
+
+            //Create empty file
+            File = fopen(InputFilename, "wb");
+
+        }else{
+
+            printf("Error: could not open %s\n", InputFilename);
+            perror("fopen");
+            exit(1);
+        }
     }
-    BytesRead = fread(FileBuf, 1, MAX_FILE_SIZE, File);
+    BytesRead = fread(FileBuf, 1, MAX_FILE_SIZE, File);    
     
-    
-    if (!feof(File))
+    if (BytesRead > MAX_FILE_SIZE)
     {
-       printf("Error: exceeded currently supported maximum file size\n");
+        printf("Error: exceeded currently supported maximum file size\n");
         exit(1);
     }
 
