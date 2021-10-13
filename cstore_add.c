@@ -37,6 +37,7 @@ void EncodeFile(char *ArchFilename, char *InputFilename, char *pwd) {
     WriteToArchive(EncData, ArchData, InputFilename, ArchFilename, key1);
     //delete InputFileName
     DeleteFile(InputFilename);
+    //To do: free stuff
 
 }
 
@@ -78,51 +79,152 @@ void DecodeFile(char *ArchFilename, char *InputFilename, char *pwd) {
     //Decode data
     ClearData = DecodeData(EncData, key0, key1, 256, iv);
 
-    WriteFile(ClearData, InputFilename);   
+    WriteFile(ClearData, InputFilename); 
+    //To do: free stuff  
 
 }
 
 
-void DeleteFromFile(char *ArchFilename, char *InputFilename, char *pwd) {     
+int DeleteFromArch(char *ArchFilename, char *InputFilename, char *pwd) {     
     //method for deleting file from archive
-    F_DATA          *ArchData;
-    int beg, end, len;
-
-    //key1 = gen_key(pwd, "integrity");
-
-    //validate HMAC from Arch
+    F_DATA          *ArchData, *NewArchData;
+    BYTE            *enc_buf, *whole, *key1, *M;
+    int             beg, end, len;
+    
+    key1 = gen_key(pwd, "integrity");
 
     //read arch
     ArchData = ReadFile(ArchFilename);
+
+    if(ArchData->Length == 0){
+        printf("Error: cannot delete from empty archive\n");
+        exit(1);
+    }
+
+    //validate HMAC from Arch
+    ValidateHMAC(ArchData, key1);
+
+    //find arch len, beg, end
     beg = find_beg(ArchData, InputFilename);
     end = find_end(ArchData, InputFilename);
     len = ArchData->Length;
 
-    printf("beg is %i\n", beg);
-    printf("end is %i\n", end);
-
-    //arch len
-    //find beg
-    //find end
+    //printf("beg is %i\n", beg);
+    //printf("end is %i\n", end);
 
     //analyze four cases
+    if(beg == SHA256_BLOCK_SIZE && end == len){
+        //printf("case 0 delete whole file\n");
+        //no malloc or anything just delete archive
+        free(ArchData->Data);
+        free(ArchData);
+        DeleteFile(ArchFilename);
+        return 0;
+    }
 
-    //malloc new arch, new length, memcpy respective
 
-    //recompute HMAC
+    //malloc new arch, new length (without HMAC)
+    enc_buf = (BYTE *) malloc (len - end + beg - SHA256_BLOCK_SIZE);  
+    
+    if(beg == SHA256_BLOCK_SIZE){
+        //printf("case 1 deletd file at the beginnig, others are left at the end\n"); 
+        //memcopy respective
+        memcpy(enc_buf, &ArchData->Data[end], len - end + beg - SHA256_BLOCK_SIZE);    
 
-    //write neW archfile wiht new HMAC
+    }else{
+        if(end == len){
+            //printf("case 2 delete file at the end, others are letf at the beginning\n");
+            //memcopy respective
+            memcpy(enc_buf, &ArchData->Data[SHA256_BLOCK_SIZE], len - end + beg - SHA256_BLOCK_SIZE);
 
-    printf("Im not implemented yet\n");
+        }else{
+            //printf("case 3 delete file at the middle, others are letf at the beggining and at the end\n");
+            //memcopy respective
+            memcpy(enc_buf, &ArchData->Data[SHA256_BLOCK_SIZE], beg - SHA256_BLOCK_SIZE);
+            memcpy(enc_buf + beg - SHA256_BLOCK_SIZE, &ArchData->Data[end], len - end);
+        }        
+    }
+
+    //free ArchData
+    free(ArchData->Data);
+    free(ArchData);   
+
+    
+
+    //recompute HMAC and add it to enc buf
+    M = HMAC(key1, enc_buf, len - end + beg - SHA256_BLOCK_SIZE);
+
+    //malloc new archfile as whole now including HMAC
+    whole = (BYTE *) malloc (len - end + beg);  
+    //copy HMAC to  whole
+    memcpy(whole, M, SHA256_BLOCK_SIZE);     
+    //copy whole to whole
+    memcpy(whole+SHA256_BLOCK_SIZE, enc_buf, len - end + beg - SHA256_BLOCK_SIZE);     
+    //release enc buf
+    free(enc_buf);    
+
+    //malloc neW archfile wiht new HMAC
+    NewArchData = malloc(sizeof(F_DATA));
+    NewArchData->Data = (char *) malloc (len - end + beg);  
+    NewArchData->Length = len - end + beg; 
+    memcpy(NewArchData->Data, whole, len - end + beg);
+    free(whole);
+
+    
+    //delete old arch write New arch file
+    DeleteFile(ArchFilename);    
+    WriteFile(NewArchData, ArchFilename);    
+
+        
+    return 0;
 }
 
-void ListFiles(char *ArchFilename) {     
+int ListFiles(char *ArchFilename) {     
     //method for listing all files in archive ?? pwd
 
     //clever use of find_end by continously re assigning new name
     //add always termination char for printing
+    F_DATA          *ArchData;
+    char *place_holder;
+    int beg, len, ind, ph;
+    
 
-    printf("Im not implemented yet\n");
+
+    
+    ArchData = ReadFile(ArchFilename);
+
+    if(ArchData->Length == 0){
+        printf("File empty\n"); 
+        return 0;       
+    }
+
+    beg = SHA256_BLOCK_SIZE; //begin after HMAC
+    len = ArchData->Length;
+    ind = 1;
+
+    
+    while(ind){
+
+        memcpy(&ph, &ArchData->Data[beg], 4);
+        place_holder = (char *) malloc (ph+1);
+        memcpy(place_holder, &ArchData->Data[beg+4], ph);
+        *(place_holder+ph) = '\0';
+        printf("found %s\n", place_holder);
+
+        beg = find_end(ArchData, place_holder);
+
+        //printf("new beg value is %i\n", beg);
+        
+        if(beg>=len)
+            ind = 0;        
+
+        free(place_holder);
+    }
+
+    return 0;
+    
+
+    
 }
 
 
@@ -131,13 +233,22 @@ int main() {
     char    *ArchFilename = "archive";
     char    *InputFilename = "test.txt";
     char    *InputFilename1 = "test0.txt";
+    char    *InputFilename2 = "test1.pdf";
     char    *pwd = "rv12345";
-       
-    EncodeFile(ArchFilename, InputFilename, pwd);
-    EncodeFile(ArchFilename, InputFilename1, pwd);
-    //DeleteFromFile(ArchFilename, InputFilename1, pwd);
-    DecodeFile(ArchFilename, InputFilename1, pwd);
+           
+    
+    EncodeFile(ArchFilename, InputFilename, pwd); 
+    EncodeFile(ArchFilename, InputFilename2, pwd);
+    EncodeFile(ArchFilename, InputFilename1, pwd); 
+        
+    //DeleteFromArch(ArchFilename, InputFilename2, pwd);
+    
     DecodeFile(ArchFilename, InputFilename, pwd);
+    DecodeFile(ArchFilename, InputFilename2, pwd);
+    DecodeFile(ArchFilename, InputFilename1, pwd);
+
+    ListFiles(ArchFilename);
+       
     
      
     return 0;

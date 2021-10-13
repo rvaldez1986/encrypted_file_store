@@ -11,6 +11,9 @@
 #define IV_LEN 16
 //#define PATH_MAX                 256        // for simplification
 
+
+
+
 typedef struct f_data{
     int Length;/* in bytes */
     char *Data;
@@ -45,13 +48,15 @@ void WriteFile(
 
 void DeleteFile(char *Filename)
 {
-   if (remove(Filename))   
-      printf("Unable to delete the file\n");
+    if (remove(Filename)){   
+        printf("Unable to delete the file\n");
+        exit(1);
+    }
 }  
 
 
 
-F_DATA *ReadFile(char *InputFilename){  //ToDo Option in the case of Archive in where if
+F_DATA *ReadFile(char *InputFilename){  
     FILE            *File;         
     int             BytesRead;         
     char            *FileBuf; 
@@ -95,6 +100,7 @@ void xor(const BYTE *in, BYTE *out, size_t len)
 }
 
 BYTE *HMAC(BYTE *key, BYTE *m, size_t len){
+    //len in the size of m
     //H(K or opad || H((K or ipad)||m))
     BYTE        *buf0, *buf1, *buf2;
     SHA256_CTX      ctx;
@@ -299,14 +305,13 @@ void ValidateHMAC(F_DATA *Data, BYTE *key1){
     M = HMAC(key1, orig_message, om);
     if(memcmp(M, Data->Data, SHA256_BLOCK_SIZE)){   
 
-        printf("either data has been tampered or password is incorrect\nCannot extract file");
+        printf("either data has been tampered or password is incorrect\nCannot validate HMAC from file\n");
         exit(1);
     }
     //0 and release orig_message
     memset(orig_message, 0, sizeof(*orig_message)); 
     free(orig_message);
     free(M);
-
 
 }
 
@@ -333,8 +338,8 @@ void WriteToArchive(
     len = strlen(InputFilename);
     enc_buf = (BYTE *) malloc (EncData->Length + len + 8);  
 
-    printf("orig data size is %i\n", EncData->Length);
-    printf("enc_buf size is %i\n", EncData->Length + len + 8);
+    //printf("orig data size is %i\n", EncData->Length);
+    //printf("enc_buf size is %i\n", EncData->Length + len + 8);
 
     
     //copy to enc_buf |name length|name|file length|file     
@@ -351,12 +356,12 @@ void WriteToArchive(
         memcpy(whole, &ArchData->Data[SHA256_BLOCK_SIZE], ArchData->Length - SHA256_BLOCK_SIZE);
         memcpy(whole + ArchData->Length - SHA256_BLOCK_SIZE, enc_buf, EncData->Length + len + 8);
         len = EncData->Length + len + 8 + ArchData->Length - SHA256_BLOCK_SIZE;
-        printf("whole size is %i\n", len);
+        //printf("whole size is %i\n", len);
     }else{
         whole = (BYTE *) malloc (EncData->Length + len + 8);
         memcpy(whole, enc_buf, EncData->Length + len + 8);
         len = EncData->Length + len + 8;
-        printf("whole size is %i\n", len);
+        //printf("whole size is %i\n", len);
     }
     
     
@@ -385,7 +390,7 @@ void WriteToArchive(
     memcpy(NewArchData->Data, enc_buf, len+SHA256_BLOCK_SIZE); 
     free(enc_buf);
 
-    printf("archData size is %i\n", len+SHA256_BLOCK_SIZE);    
+    //printf("archData size is %i\n", len+SHA256_BLOCK_SIZE);    
     //write Archive file with new info
     DeleteFile(ArchFilename);
     WriteFile(NewArchData, ArchFilename);
@@ -432,22 +437,24 @@ int find_pos(F_DATA *ArchData, char *InputFilename){
     ind = 1;
     ret = -1;
 
-    printf("len is %i\n", len);
+    //printf("len is %i\n", len);
 
     while(ind){
 
-        printf("beg starts in %i\n", beg);
+        //printf("beg starts in %i\n", beg);
         
         memcpy(&ph, &ArchData->Data[beg], 4);
-        printf("size found is %i\n", ph);
+        //printf("size found is %i\n", ph);
         place_holder = (char *) malloc (ph);
         memcpy(place_holder, &ArchData->Data[beg+4], ph);
-        printf("memcmp gives us %i\n", memcmp(place_holder, InputFilename, ph));       
+        //printf("memcmp gives us %i\n", memcmp(place_holder, InputFilename, ph));       
             
 
         if(memcmp(place_holder, InputFilename, ph)==0){
             ret = beg+4+ph;
-            ind = 0;            
+            ind = 0;  
+            free(place_holder);
+
         }else{
             beg = beg+4+ph;
             memcpy(&ph, &ArchData->Data[beg], 4);
@@ -455,14 +462,13 @@ int find_pos(F_DATA *ArchData, char *InputFilename){
 
             if(beg>=len)
                 ind = 0;
+            free(place_holder); 
         }
         
-        printf("beg ends in %i\n", beg);
+        //printf("beg ends in %i\n", beg);
                
 
     }
-
-
 
     if(ret<0){
         printf("File Name Not found!\n");
@@ -470,7 +476,7 @@ int find_pos(F_DATA *ArchData, char *InputFilename){
     }
 
     
-    printf("ret is %i\n", ret);
+    //printf("ret is %i\n", ret);
     
     return ret;
 }
@@ -483,7 +489,7 @@ int find_beg(F_DATA *ArchData, char *InputFilename){
     int pos, len;
 
     pos = find_pos(ArchData, InputFilename);
-    printf("pos is %i\n", pos);
+    //printf("pos is %i\n", pos);
     len = strlen(InputFilename);
 
     return pos - len - 4;
@@ -497,7 +503,7 @@ int find_end(F_DATA *ArchData, char *InputFilename){
     int pos, ph;
 
     pos = find_pos(ArchData, InputFilename);
-    printf("pos is %i\n", pos);
+    //printf("pos is %i\n", pos);
     
     memcpy(&ph, &ArchData->Data[pos], 4);
 
