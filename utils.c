@@ -89,7 +89,9 @@ F_DATA *ReadFile(char *InputFilename, int ind){
     FileData = malloc(sizeof(F_DATA));
     FileData->Data = (char *) malloc (BytesRead);  
     FileData->Length = BytesRead;
-    FileData->Data = FileBuf;
+    //FileData->Data = FileBuf;
+    memcpy(FileData->Data, FileBuf, BytesRead);
+    free(FileBuf);    
 
     fclose(File);
 
@@ -346,7 +348,6 @@ void WriteToArchive(
 
     //printf("orig data size is %i\n", EncData->Length);
     //printf("enc_buf size is %i\n", EncData->Length + len + 8);
-
     
     //copy to enc_buf |name length|name|file length|file     
     memcpy(enc_buf, &len, 4);

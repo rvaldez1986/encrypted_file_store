@@ -187,10 +187,7 @@ int ListFiles(char *ArchFilename) {
     F_DATA          *ArchData;
     char *place_holder;
     int beg, len, ind, ph;
-    
-
-
-    
+        
     ArchData = ReadFile(ArchFilename, 0); //if archive doesnt exist return error
 
     if(ArchData->Length == 0){
