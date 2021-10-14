@@ -45,6 +45,7 @@ void WriteFile(
         
         free(DataToWrite->Data);
         free(DataToWrite); 
+        fclose(OutputFile);
         printf("Error writing file\n");
         exit(1);
     }   
@@ -91,6 +92,7 @@ F_DATA *ReadFile(char *InputFilename, int ind){
     if (BytesRead > MAX_FILE_SIZE)
     {
         free(FileBuf);
+        fclose(File);
         printf("Error: exceeded currently supported maximum file size\n");
         exit(1);
     }

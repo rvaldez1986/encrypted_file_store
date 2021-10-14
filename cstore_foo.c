@@ -47,7 +47,7 @@ void EncodeFile(char *ArchFilename, char *InputFilename, char *pwd) {
     //delete InputFileName
     DeleteFile(InputFilename);
     
-    
+    free(iv);
 
 }
 
@@ -212,12 +212,19 @@ int ListFiles(char *ArchFilename) {
 
     if ((File = fopen("list.txt", "w")) == NULL){
        
-       printf("Error! opening file");
-       exit(1);
+        //free ArchData
+        free(ArchData->Data);
+        free(ArchData);       
+        printf("Error! opening file");
+        exit(1);
 
     }
 
     if(ArchData->Length == 0){
+
+        free(ArchData->Data);
+        free(ArchData); 
+        fclose(File);
         fwrite("File empty", sizeof(char), 10, File);
         printf("File empty\n"); 
         return 0;       
@@ -232,6 +239,10 @@ int ListFiles(char *ArchFilename) {
 
         memcpy(&ph, &ArchData->Data[beg], 4);
         if(ph < 0 || ph >= len){
+
+            free(ArchData->Data);
+            free(ArchData); 
+            fclose(File);
             printf("Error: the archive has some error\n");
             exit(1);
         }
@@ -253,12 +264,12 @@ int ListFiles(char *ArchFilename) {
         free(place_holder);
     }
 
+    //free stuff and close file
+    free(ArchData->Data);
+    free(ArchData); 
     fclose(File);
 
-    //ToDo: free stuff
     return 0;
-    
-
     
 }
 
