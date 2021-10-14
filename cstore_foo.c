@@ -39,14 +39,15 @@ void EncodeFile(char *ArchFilename, char *InputFilename, char *pwd) {
     //Encode Data (IV + File)
     EncData = EncodeData(ClearData, key0, key1, 256, iv);
     
-
+    //free clear data??
+    //free others?
     
+    //WriteToArchive frees EncData and ArchData
     WriteToArchive(EncData, ArchData, InputFilename, ArchFilename, key1);
     //delete InputFileName
     DeleteFile(InputFilename);
-    //To do: free stuff
-    //free clear data
-    //free others?
+    //To do: free stuff ??
+    
 
 }
 

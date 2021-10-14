@@ -195,13 +195,17 @@ F_DATA *EncodeData(F_DATA *DataToEncode, BYTE *key0, BYTE *key1, int keysize, BY
     while(nl%AES_BLOCK_SIZE){
         nl++;
     }
-    
+
+        
     //malloc memory to store padded data
     enc_buf = (BYTE *) malloc (nl);
     new_data = (BYTE *) malloc (nl);    
    
     //copy old data to new data holder
     memcpy(new_data, DataToEncode->Data, DataToEncode->Length);
+    //free DataToEncode
+    
+
     //add end byte and padd bytes to new_data
     *(new_data+ti) = END_BYTE;
     ti++;
@@ -368,7 +372,7 @@ void WriteToArchive(
     memcpy(enc_buf+4, InputFilename, len);
     memcpy(enc_buf+4+len, &EncData->Length, 4);       
     memcpy(enc_buf+4+len+4, EncData->Data, EncData->Length);    
-
+    
     //whole = malloc size enc_buf + (size of ArchData - HMAC_SIZE if ArchData is not empty)
     //copy ArchData (without HMAC) to whole (if ArchData is not empty)
     //copy enc_buf to whole next to it
@@ -386,10 +390,12 @@ void WriteToArchive(
     }
     
     
-    //release enc_buf
+    //release enc_buf, ArchData and EncData (all is on whole now)
     free(enc_buf);
     free(ArchData->Data);
     free(ArchData);
+    free(EncData->Data);
+    free(EncData);
 
     //calculate HMAC of whole 
     M = HMAC(key1, whole, len);
