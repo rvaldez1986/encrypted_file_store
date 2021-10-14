@@ -21,6 +21,9 @@ void EncodeFile(char *ArchFilename, char *InputFilename, char *pwd) {
         ValidateHMAC(ArchData, key1);
     }
 
+    //ToDo: Check if filename exists in ArchData (if ArchData->Length)
+    //For this we need to change findPos not to exit out with error if not found
+
     
     //read clear data and encode it
     ClearData = ReadFile(InputFilename, 0);
@@ -67,6 +70,11 @@ void DecodeFile(char *ArchFilename, char *InputFilename, char *pwd) {
 
     //obtain position in ArchData
     pos = find_pos(ArchData, InputFilename);
+
+    if(pos<0){
+        printf("File Name Not found!\n");
+        exit(1);
+    }
         
     //Read data from archive using the position 
     EncData = ReadFromArchive(ArchData, pos); 

@@ -17,6 +17,10 @@ int main(int argc, char *argv[] ) {
         printf("The first argument supplied is %s\n", argv[1]);
         printf("The second argument supplied is %s\n", argv[2]);
         printf("The third argument supplied is %s\n", argv[3]);
+
+        if (strcmp(argv[1], "add")==0){
+            printf("yes you passed add\n");
+        }
         
         EncodeFile(ArchFilename, InputFilename, pwd); 
         EncodeFile(ArchFilename, InputFilename2, pwd);

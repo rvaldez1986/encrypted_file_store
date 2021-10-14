@@ -479,12 +479,6 @@ int find_pos(F_DATA *ArchData, char *InputFilename){
                
 
     }
-
-    if(ret<0){
-        printf("File Name Not found!\n");
-        exit(1);
-    }
-
     
     //printf("ret is %i\n", ret);
     
@@ -499,6 +493,11 @@ int find_beg(F_DATA *ArchData, char *InputFilename){
     int pos, len;
 
     pos = find_pos(ArchData, InputFilename);
+
+    if(pos<0){
+        printf("File Name Not found!\n");
+        exit(1);
+    }
     //printf("pos is %i\n", pos);
     len = strlen(InputFilename);
 
@@ -513,6 +512,11 @@ int find_end(F_DATA *ArchData, char *InputFilename){
     int pos, ph;
 
     pos = find_pos(ArchData, InputFilename);
+
+    if(pos<0){
+        printf("File Name Not found!\n");
+        exit(1);
+    }
     //printf("pos is %i\n", pos);
     
     memcpy(&ph, &ArchData->Data[pos], 4);
