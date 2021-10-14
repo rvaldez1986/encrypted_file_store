@@ -84,9 +84,8 @@ void DecodeFile(char *ArchFilename, char *InputFilename, char *pwd) {
     }
         
     //Read data from archive using the position 
-    EncData = ReadFromArchive(ArchData, pos); 
-
-    
+    //readFromArchive frees ArchData
+    EncData = ReadFromArchive(ArchData, pos);     
     
     //Extract iv
     memcpy(iv, EncData->Data, IV_LEN);
@@ -96,8 +95,9 @@ void DecodeFile(char *ArchFilename, char *InputFilename, char *pwd) {
     ClearData = DecodeData(EncData, key0, key1, 256, iv);
 
     WriteFile(ClearData, InputFilename); 
-    //free ClearData
-
+    //free ClearData (if no errors writeFile does not frees it)
+    free(ClearData->Data);
+    free(ClearData);
 }
 
 

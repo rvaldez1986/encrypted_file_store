@@ -30,6 +30,9 @@ void WriteFile(
 
     if ((OutputFile = fopen(OutputFilename, "wb")) == NULL)
     {
+        
+        free(DataToWrite->Data);
+        free(DataToWrite);        
         printf("Error: could not open %s\n", OutputFilename);
         perror("fopen");
         exit(1);
@@ -39,6 +42,9 @@ void WriteFile(
     pCurrent = DataToWrite->Data;
 
     if (fwrite(pCurrent, 1, BytesLeft, OutputFile) != BytesLeft) {
+        
+        free(DataToWrite->Data);
+        free(DataToWrite); 
         printf("Error writing file\n");
         exit(1);
     }   
@@ -283,6 +289,8 @@ F_DATA *DecodeData(F_DATA *DataToDecode, BYTE *key0, BYTE *key1, int keysize, BY
 	}
 
     //free DataToDecode
+    free(DataToDecode->Data);
+    free(DataToDecode);
 
     //obtain original length of message
     cc = *(enc_buf+ol-1);
@@ -465,8 +473,12 @@ F_DATA *ReadFromArchive(F_DATA *ArchData, int pos){
     
     //Copy to data
     memcpy(EncData->Data, &ArchData->Data[pos+4], len);   
+
+    //free stuff
+    free(ArchData->Data);
+    free(ArchData);
         
-    return EncData;    
+    return EncData;
 
 }
 
