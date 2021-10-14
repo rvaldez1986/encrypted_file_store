@@ -74,6 +74,7 @@ F_DATA *ReadFile(char *InputFilename, int ind){
 
         }else{
 
+            free(FileBuf);
             printf("Error: could not open or File does not exist %s\n", InputFilename);
             perror("fopen");
             exit(1);
@@ -83,6 +84,7 @@ F_DATA *ReadFile(char *InputFilename, int ind){
     
     if (BytesRead > MAX_FILE_SIZE)
     {
+        free(FileBuf);
         printf("Error: exceeded currently supported maximum file size\n");
         exit(1);
     }
@@ -332,13 +334,25 @@ void ValidateHMAC(F_DATA *Data, BYTE *key1){
     BYTE        *orig_message, *M;
     
     om = Data->Length-SHA256_BLOCK_SIZE;
+    if(om <= 0 || om >= Data->Length){   
+
+        free(Data->Data);
+        free(Data);
+        printf("either data has been tampered or password is incorrect\nCannot validate HMAC from file\n");
+        exit(1);
+
+    }
+
     orig_message = (char *) malloc (om);
     memcpy(orig_message, &Data->Data[SHA256_BLOCK_SIZE], om); 
     M = HMAC(key1, orig_message, om);
     if(memcmp(M, Data->Data, SHA256_BLOCK_SIZE)){   
 
+        free(Data->Data);
+        free(Data);
         printf("either data has been tampered or password is incorrect\nCannot validate HMAC from file\n");
         exit(1);
+
     }
     //0 and release orig_message
     memset(orig_message, 0, sizeof(*orig_message)); 
@@ -472,11 +486,23 @@ int find_pos(F_DATA *ArchData, char *InputFilename){
     while(ind){
 
         //printf("beg starts in %i\n", beg);
+        if(beg+4 >= len){
+
+            free(ArchData->Data);
+            free(ArchData);
+            printf("Error: the archive has some error, data could be tampered\n");
+            exit(1);
+            
+        }
         
         memcpy(&ph, &ArchData->Data[beg], 4);
-        if(ph < 0 || ph >= len){
-            printf("Error: the archive has some error\n");
+        if(ph < 0 || beg + 4 + ph > len){
+
+            free(ArchData->Data);
+            free(ArchData);
+            printf("Error: the archive has some error, data could be tampered\n");
             exit(1);
+
         }
 
         //printf("size found is %i\n", ph);
@@ -520,6 +546,8 @@ int find_beg(F_DATA *ArchData, char *InputFilename){
     pos = find_pos(ArchData, InputFilename);
 
     if(pos<0){
+        free(ArchData->Data);
+        free(ArchData);
         printf("File Name Not found!\n");
         exit(1);
     }
@@ -539,6 +567,8 @@ int find_end(F_DATA *ArchData, char *InputFilename){
     pos = find_pos(ArchData, InputFilename);
 
     if(pos<0){
+        free(ArchData->Data);
+        free(ArchData);
         printf("File Name Not found!\n");
         exit(1);
     }
