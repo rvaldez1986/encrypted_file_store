@@ -77,8 +77,7 @@ int main(int argc, char *argv[] ) {
 
                 pwd = argv[3];
                 ArchFilename = argv[4];
-                InputFilename = argv[5];
-
+                
                 for (idx = 5; idx < argc; idx++){
 
                     InputFilename = argv[idx];
