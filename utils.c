@@ -9,7 +9,7 @@
 #define PAD_BYTE    0x00
 #define AES_BLOCK_SIZE 16
 #define IV_LEN 16
-//#define PATH_MAX                 256        // for simplification
+#define PATH_MAX                 256        // for simplification
 
 
 
@@ -159,10 +159,22 @@ BYTE *HMAC(BYTE *key, BYTE *m, size_t len){
 BYTE *gen_iv(){
     //generate IV of size IV_LEN
     BYTE       *iv;
+    FILE       *File;
     //malloc size IV_LEN
     //https://stackoverflow.com/questions/2572366/how-to-use-dev-random-or-urandom-in-c
+    //BYTE iv[IV_LEN] = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f};
 
-    printf("Im not implemented yet\n");
+    
+    if ((File = fopen("/dev/urandom", "r")) == NULL){
+
+        printf("Error: could not open dev/urandom \n");
+        exit(1);
+    }
+
+    iv = (BYTE *) malloc (IV_LEN);  
+    
+    fread(iv, 1, IV_LEN, File);
+    fclose(File);
 
     return iv;
 

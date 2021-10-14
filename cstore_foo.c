@@ -5,8 +5,8 @@
 
 void EncodeFile(char *ArchFilename, char *InputFilename, char *pwd) { 
     F_DATA          *ClearData, *ArchData, *EncData;          
-    BYTE iv[IV_LEN] = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f}; //this should be random (ToDo, use method)
-    BYTE            *key0, *key1; 
+    //BYTE iv[IV_LEN] = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f}; //this should be random (ToDo, use method)
+    BYTE            *key0, *key1, *iv; 
     int             pos;   
 
     //read arch data
@@ -16,6 +16,7 @@ void EncodeFile(char *ArchFilename, char *InputFilename, char *pwd) {
     //generate key and IV here
     key0 = gen_key(pwd, "confidentiality");
     key1 = gen_key(pwd, "integrity");
+    iv = gen_iv();
 
     //validate HMAC from Arch
     if(ArchData->Length){
