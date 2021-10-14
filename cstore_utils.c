@@ -197,14 +197,15 @@ F_DATA *EncodeData(F_DATA *DataToEncode, BYTE *key0, BYTE *key1, int keysize, BY
     }
 
         
-    //malloc memory to store padded data
-    enc_buf = (BYTE *) malloc (nl);
+    //malloc memory to store padded data    
     new_data = (BYTE *) malloc (nl);    
    
     //copy old data to new data holder
     memcpy(new_data, DataToEncode->Data, DataToEncode->Length);
     //free DataToEncode
-    
+    free(DataToEncode->Data);
+    free(DataToEncode);
+
 
     //add end byte and padd bytes to new_data
     *(new_data+ti) = END_BYTE;
@@ -212,7 +213,10 @@ F_DATA *EncodeData(F_DATA *DataToEncode, BYTE *key0, BYTE *key1, int keysize, BY
     while(ti<nl){
         *(new_data+ti) = PAD_BYTE;
         ti++;
-    }     
+    } 
+
+    //malloc for holding enc_buf
+    enc_buf = (BYTE *) malloc (nl);    
 
     //encrypt data
     aes_key_setup(key0, key_schedule, keysize);
@@ -275,6 +279,8 @@ F_DATA *DecodeData(F_DATA *DataToDecode, BYTE *key0, BYTE *key1, int keysize, BY
 		memcpy(&enc_buf[idx * AES_BLOCK_SIZE], buf_out, AES_BLOCK_SIZE);
 		memcpy(iv_buf, buf_in, AES_BLOCK_SIZE);
 	}
+
+    //free DataToDecode
 
     //obtain original length of message
     cc = *(enc_buf+ol-1);

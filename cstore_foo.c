@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "utils.c"
+#include "cstore_utils.c"
 
 void EncodeFile(char *ArchFilename, char *InputFilename, char *pwd) { 
     F_DATA          *ClearData, *ArchData, *EncData;          
@@ -27,6 +27,8 @@ void EncodeFile(char *ArchFilename, char *InputFilename, char *pwd) {
     if(ArchData->Length){
         pos = find_pos(ArchData, InputFilename);
         if(pos>=0){
+            free(ArchData->Data);
+            free(ArchData);
             printf("File already exists!\n");
             exit(1);
         }
@@ -37,16 +39,14 @@ void EncodeFile(char *ArchFilename, char *InputFilename, char *pwd) {
 
     
     //Encode Data (IV + File)
-    EncData = EncodeData(ClearData, key0, key1, 256, iv);
-    
-    //free clear data??
-    //free others?
+    //encode data frees ClearData
+    EncData = EncodeData(ClearData, key0, key1, 256, iv);   
     
     //WriteToArchive frees EncData and ArchData
     WriteToArchive(EncData, ArchData, InputFilename, ArchFilename, key1);
     //delete InputFileName
     DeleteFile(InputFilename);
-    //To do: free stuff ??
+    
     
 
 }
@@ -92,10 +92,11 @@ void DecodeFile(char *ArchFilename, char *InputFilename, char *pwd) {
     memcpy(iv, EncData->Data, IV_LEN);
 
     //Decode data
+    //Decode data frees EncData
     ClearData = DecodeData(EncData, key0, key1, 256, iv);
 
     WriteFile(ClearData, InputFilename); 
-    //To do: free stuff  
+    //free ClearData
 
 }
 
@@ -190,7 +191,7 @@ int DeleteFromArch(char *ArchFilename, char *InputFilename, char *pwd) {
     DeleteFile(ArchFilename);    
     WriteFile(NewArchData, ArchFilename);    
 
-    //ToDo: free stuff
+    //ToDo: free NewArchData
     return 0;
 }
 
