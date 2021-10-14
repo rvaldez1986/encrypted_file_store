@@ -20,6 +20,24 @@ typedef struct f_data{
 } F_DATA;
 
 
+void write_error(char *ErrorText, int len){
+
+    FILE            *File;
+
+    if ((File = fopen("error.txt", "w")) == NULL){
+       
+        perror("fopen");
+        exit(1);
+
+    }
+
+    fwrite(ErrorText, sizeof(char), len, File);
+    fclose(File);
+
+}
+
+
+
 void WriteFile(
     F_DATA *DataToWrite,
     char *OutputFilename)
@@ -34,7 +52,6 @@ void WriteFile(
         free(DataToWrite->Data);
         free(DataToWrite);        
         printf("Error: could not open %s\n", OutputFilename);
-        perror("fopen");
         exit(1);
     }
     
@@ -349,6 +366,7 @@ void ValidateHMAC(F_DATA *Data, BYTE *key1){
         free(Data->Data);
         free(Data);
         printf("either data has been tampered or password is incorrect\nCannot validate HMAC from file\n");
+        write_error("either data has been tampered or password is incorrect\nCannot validate HMAC from file\n", 86);
         exit(1);
 
     }
@@ -362,6 +380,7 @@ void ValidateHMAC(F_DATA *Data, BYTE *key1){
         free(Data);
         free(M);
         printf("either data has been tampered or password is incorrect\nCannot validate HMAC from file\n");
+        write_error("either data has been tampered or password is incorrect\nCannot validate HMAC from file\n", 86);
         exit(1);
 
     }
@@ -595,6 +614,9 @@ int find_end(F_DATA *ArchData, char *InputFilename){
 
 
 }
+
+
+
 
 
 
