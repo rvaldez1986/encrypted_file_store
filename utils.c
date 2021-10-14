@@ -160,6 +160,7 @@ BYTE *gen_iv(){
     //generate IV of size IV_LEN
     BYTE       *iv;
     //malloc size IV_LEN
+    //https://stackoverflow.com/questions/2572366/how-to-use-dev-random-or-urandom-in-c
 
     printf("Im not implemented yet\n");
 

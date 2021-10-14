@@ -39,14 +39,15 @@ void EncodeFile(char *ArchFilename, char *InputFilename, char *pwd) {
 
     //Encode Data (IV + File)
     EncData = EncodeData(ClearData, key0, key1, 256, iv);
-    //free clear data
-    //free others?
+    
 
     
     WriteToArchive(EncData, ArchData, InputFilename, ArchFilename, key1);
     //delete InputFileName
     DeleteFile(InputFilename);
     //To do: free stuff
+    //free clear data
+    //free others?
 
 }
 
@@ -217,6 +218,11 @@ int ListFiles(char *ArchFilename) {
     while(ind){
 
         memcpy(&ph, &ArchData->Data[beg], 4);
+        if(ph < 0 || ph >= len){
+            printf("Error: the archive has some error\n");
+            exit(1);
+        }
+
         place_holder = (char *) malloc (ph+1);
         memcpy(place_holder, &ArchData->Data[beg+4], ph);
         *(place_holder+ph) = '\0';
