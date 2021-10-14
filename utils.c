@@ -416,7 +416,9 @@ void WriteToArchive(
     DeleteFile(ArchFilename);
     WriteFile(NewArchData, ArchFilename);
 
-    //ToDo: free stuff
+    //free stuff
+    free(NewArchData->Data);
+    free(NewArchData);
 
 }
 
@@ -428,24 +430,17 @@ F_DATA *ReadFromArchive(F_DATA *ArchData, int pos){
     //HMAC was already validated    
     
     //extract file length
-    memcpy(&len, &ArchData->Data[pos], 4);
-
-      
+    memcpy(&len, &ArchData->Data[pos], 4);      
         
     //malloc file length for F_DATA
     EncData = malloc(sizeof(F_DATA));
     EncData->Data = (char *) malloc (len);  
     EncData->Length = len;
-
     
     //Copy to data
-    memcpy(EncData->Data, &ArchData->Data[pos+4], len); 
-
-   
-    
+    memcpy(EncData->Data, &ArchData->Data[pos+4], len);   
         
-    return EncData;
-    
+    return EncData;    
 
 }
 
