@@ -6,34 +6,94 @@
 
 int main(int argc, char *argv[] ) {
 
-    char    *ArchFilename = "archive";
-    char    *InputFilename = "test.txt";
-    char    *InputFilename1 = "test0.txt";
-    char    *InputFilename2 = "test1.pdf";
-    char    *pwd = "rv12345";
+    char    *ArchFilename;
+    char    *InputFilename;
+    char    *pwd;
 
-    if( argc >= 2 ) {
+    if( argc >= 3 ) {
 
-        printf("The first argument supplied is %s\n", argv[1]);
-        printf("The second argument supplied is %s\n", argv[2]);
-        printf("The third argument supplied is %s\n", argv[3]);
+        //printf("The first argument supplied is %s\n", argv[1]);
+        //printf("The second argument supplied is %s\n", argv[2]);
+        //printf("The third argument supplied is %s\n", argv[3]);
+        //printf("n args passed %i\n", argc);
 
         if (strcmp(argv[1], "add")==0){
-            printf("yes you passed add\n");
+
+            if( argc > 5 ) {
+
+                pwd = argv[3];
+                ArchFilename = argv[4];
+                InputFilename = argv[5];
+            
+                EncodeFile(ArchFilename, InputFilename, pwd); 
+            
+            }else{
+
+                printf("arguments incorrectly passed to the program\n");
+                exit(1);
+
+            }            
+
+        }else if (strcmp(argv[1], "list")==0){
+
+            if( argc == 3 ) {
+
+                ArchFilename = argv[2];            
+                ListFiles(ArchFilename);
+            
+            }else{
+
+                printf("arguments incorrectly passed to the program\n");
+                exit(1);
+
+            }             
+
+        }else if (strcmp(argv[1], "extract")==0){
+
+            if( argc > 5 ) {
+
+                pwd = argv[3];
+                ArchFilename = argv[4];
+                InputFilename = argv[5];
+            
+                DecodeFile(ArchFilename, InputFilename, pwd);
+
+            }else{
+
+                printf("arguments incorrectly passed to the program\n");
+                exit(1);
+
+            }            
+            
+        }else if (strcmp(argv[1], "delete")==0){
+
+            if( argc > 5 ) {
+
+                pwd = argv[3];
+                ArchFilename = argv[4];
+                InputFilename = argv[5];
+            
+                DeleteFromArch(ArchFilename, InputFilename, pwd);
+
+            }else{
+
+                printf("arguments incorrectly passed to the program\n");
+                exit(1);
+
+            }          
+            
+        }else{
+
+            printf("this command is not implemented in the file store program\n");
+            exit(1);
+
         }
         
-        EncodeFile(ArchFilename, InputFilename, pwd); 
-        EncodeFile(ArchFilename, InputFilename2, pwd);
-        EncodeFile(ArchFilename, InputFilename1, pwd);    
-    
-        DecodeFile(ArchFilename, InputFilename, pwd);
-        DecodeFile(ArchFilename, InputFilename2, pwd);
-        DecodeFile(ArchFilename, InputFilename1, pwd);
+    }else{
 
-        DeleteFromArch(ArchFilename, InputFilename2, pwd);
-
-        ListFiles(ArchFilename);
-    }     
+        printf("arguments incorrectly passed to the program\n");
+        exit(1);
+    }    
      
     return 0;
 
