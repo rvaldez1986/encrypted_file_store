@@ -6,7 +6,8 @@
 void EncodeFile(char *ArchFilename, char *InputFilename, char *pwd) { 
     F_DATA          *ClearData, *ArchData, *EncData;          
     BYTE iv[IV_LEN] = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f}; //this should be random (ToDo, use method)
-    BYTE            *key0, *key1;    
+    BYTE            *key0, *key1; 
+    int             pos;   
 
     //read arch data
     ArchData = ReadFile(ArchFilename, 1);
@@ -21,9 +22,14 @@ void EncodeFile(char *ArchFilename, char *InputFilename, char *pwd) {
         ValidateHMAC(ArchData, key1);
     }
 
-    //ToDo: Check if filename exists in ArchData (if ArchData->Length)
-    //For this we need to change findPos not to exit out with error if not found
-
+    //Check if filename exists in ArchData (if ArchData->Length)
+    if(ArchData->Length){
+        pos = find_pos(ArchData, InputFilename);
+        if(pos>=0){
+            printf("File already exists!\n");
+            exit(1);
+        }
+    }
     
     //read clear data and encode it
     ClearData = ReadFile(InputFilename, 0);
