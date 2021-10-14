@@ -35,9 +35,7 @@ void EncodeFile(char *ArchFilename, char *InputFilename, char *pwd) {
     //read clear data and encode it
     ClearData = ReadFile(InputFilename, 0);
 
-    //generate IV
-    //iv = 
-
+    
     //Encode Data (IV + File)
     EncData = EncodeData(ClearData, key0, key1, 256, iv);
     
@@ -201,13 +199,22 @@ int ListFiles(char *ArchFilename) {
     //clever use of find_end by continously re assigning new name
     //add always termination char for printing
     F_DATA          *ArchData;
-    char *place_holder;
-    int beg, len, ind, ph;
+    FILE            *File;
+    char            *place_holder;
+    int             beg, len, ind, ph;
 
     ArchData = ReadFile(ArchFilename, 1); //if archive doesnt exist read it anyways ?
 
+    if ((File = fopen("list.txt", "w")) == NULL){
+       
+       printf("Error! opening file");
+       exit(1);
+
+    }
+
     if(ArchData->Length == 0){
-        printf("File empty\n"); 
+        fwrite("File empty", sizeof(char), 10, File);
+        printf("File empty"); 
         return 0;       
     }
 
@@ -228,6 +235,8 @@ int ListFiles(char *ArchFilename) {
         memcpy(place_holder, &ArchData->Data[beg+4], ph);
         *(place_holder+ph) = '\0';
         printf("found %s\n", place_holder);
+        *(place_holder+ph) = '\n';
+        fwrite(place_holder, sizeof(char), ph+1, File);
 
         beg = find_end(ArchData, place_holder);
 
@@ -238,6 +247,8 @@ int ListFiles(char *ArchFilename) {
 
         free(place_holder);
     }
+
+    fclose(File);
 
     //ToDo: free stuff
     return 0;
