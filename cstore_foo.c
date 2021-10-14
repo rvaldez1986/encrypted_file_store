@@ -113,6 +113,8 @@ int DeleteFromArch(char *ArchFilename, char *InputFilename, char *pwd) {
     ArchData = ReadFile(ArchFilename, 0); //if archive doesnt exist return error
 
     if(ArchData->Length == 0){
+        free(ArchData->Data);
+        free(ArchData);
         printf("Error: cannot delete from empty archive\n");
         exit(1);
     }
@@ -132,9 +134,9 @@ int DeleteFromArch(char *ArchFilename, char *InputFilename, char *pwd) {
     if(beg == SHA256_BLOCK_SIZE && end == len){
         //printf("case 0 delete whole file\n");
         //no malloc or anything just delete archive
-        free(ArchData->Data);
-        free(ArchData);
         DeleteFile(ArchFilename);
+        free(ArchData->Data);
+        free(ArchData);        
         return 0;
     }
 
@@ -163,8 +165,7 @@ int DeleteFromArch(char *ArchFilename, char *InputFilename, char *pwd) {
 
     //free ArchData
     free(ArchData->Data);
-    free(ArchData);   
-
+    free(ArchData);
     
 
     //recompute HMAC and add it to enc buf
@@ -177,7 +178,8 @@ int DeleteFromArch(char *ArchFilename, char *InputFilename, char *pwd) {
     //copy whole to whole
     memcpy(whole+SHA256_BLOCK_SIZE, enc_buf, len - end + beg - SHA256_BLOCK_SIZE);     
     //release enc buf
-    free(enc_buf);    
+    free(enc_buf);   
+    free(M); 
 
     //malloc neW archfile wiht new HMAC
     NewArchData = malloc(sizeof(F_DATA));
@@ -185,13 +187,14 @@ int DeleteFromArch(char *ArchFilename, char *InputFilename, char *pwd) {
     NewArchData->Length = len - end + beg; 
     memcpy(NewArchData->Data, whole, len - end + beg);
     free(whole);
-
     
     //delete old arch write New arch file
     DeleteFile(ArchFilename);    
     WriteFile(NewArchData, ArchFilename);    
 
-    //ToDo: free NewArchData
+    //free NewArchData, if WriteFile works it is not freed
+    free(NewArchData->Data);
+    free(NewArchData);
     return 0;
 }
 
@@ -216,7 +219,7 @@ int ListFiles(char *ArchFilename) {
 
     if(ArchData->Length == 0){
         fwrite("File empty", sizeof(char), 10, File);
-        printf("File empty"); 
+        printf("File empty\n"); 
         return 0;       
     }
 

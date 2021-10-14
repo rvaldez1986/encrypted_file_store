@@ -358,6 +358,7 @@ void ValidateHMAC(F_DATA *Data, BYTE *key1){
 
         free(Data->Data);
         free(Data);
+        free(M);
         printf("either data has been tampered or password is incorrect\nCannot validate HMAC from file\n");
         exit(1);
 
