@@ -63,7 +63,7 @@ void DecodeFile(char *ArchFilename, char *InputFilename, char *pwd) {
 
      
 
-    //generate key and IV here
+    //generate key here
     key0 = gen_key(pwd, "confidentiality");
     key1 = gen_key(pwd, "integrity");
 
