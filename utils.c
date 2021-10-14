@@ -455,6 +455,11 @@ int find_pos(F_DATA *ArchData, char *InputFilename){
         //printf("beg starts in %i\n", beg);
         
         memcpy(&ph, &ArchData->Data[beg], 4);
+        if(ph < 0 || ph >= len){
+            printf("Error: the archive has some error\n");
+            exit(1);
+        }
+
         //printf("size found is %i\n", ph);
         place_holder = (char *) malloc (ph);
         memcpy(place_holder, &ArchData->Data[beg+4], ph);
