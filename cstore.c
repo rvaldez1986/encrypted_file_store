@@ -19,7 +19,7 @@ int main(int argc, char *argv[] ) {
         //add files
         if (strcmp(argv[1], "add")==0){
 
-            if( argc > 5 ) {
+            if( argc > 5 && strcmp(argv[2], "-p") == 0){
 
                 pwd = argv[3];
                 ArchFilename = argv[4];
@@ -29,12 +29,12 @@ int main(int argc, char *argv[] ) {
                     InputFilename = argv[idx];
                     EncodeFile(ArchFilename, InputFilename, pwd);
 
-                }         
+                }                   
             
             }else{
 
                 //printf("arguments incorrectly passed to the program\n");
-                write_error("Error: arguments incorrectly passed to the program", 50);
+                write_error("Error: arguments incorrectly passed to the program, use -p to pass password", 75);
                 exit(1);
             }            
 
@@ -55,7 +55,7 @@ int main(int argc, char *argv[] ) {
 
         }else if (strcmp(argv[1], "extract")==0){
 
-            if( argc > 5 ) {
+            if( argc > 5 && strcmp(argv[2], "-p") == 0) {
 
                 pwd = argv[3];
                 ArchFilename = argv[4];
@@ -70,13 +70,13 @@ int main(int argc, char *argv[] ) {
             }else{
 
                 //printf("arguments incorrectly passed to the program\n");
-                write_error("Error: arguments incorrectly passed to the program", 50);
+                write_error("Error: arguments incorrectly passed to the program, use -p to pass password", 75);
                 exit(1);
             }            
             
         }else if (strcmp(argv[1], "delete")==0){
 
-            if( argc > 5 ) {
+            if( argc > 5 && strcmp(argv[2], "-p") == 0 ) {
 
                 pwd = argv[3];
                 ArchFilename = argv[4];
@@ -91,7 +91,7 @@ int main(int argc, char *argv[] ) {
             }else{
 
                 //printf("arguments incorrectly passed to the program\n");
-                write_error("Error: arguments incorrectly passed to the program", 50);
+                write_error("Error: arguments incorrectly passed to the program, use -p to pass password", 75);
                 exit(1);
             }          
             
