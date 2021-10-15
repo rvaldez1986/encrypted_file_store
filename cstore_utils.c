@@ -12,8 +12,6 @@
 #define PATH_MAX                 256        // for simplification
 
 
-
-
 typedef struct f_data{
     int Length;/* in bytes */
     char *Data;
@@ -28,14 +26,12 @@ void write_error(char *ErrorText, int len){
        
         perror("fopen");
         exit(1);
-
     }
 
     fwrite(ErrorText, sizeof(char), len, File);
     fclose(File);
 
 }
-
 
 
 void WriteFile(
@@ -50,8 +46,9 @@ void WriteFile(
     {
         
         free(DataToWrite->Data);
-        free(DataToWrite);        
+        free(DataToWrite);          
         printf("Error: could not open %s\n", OutputFilename);
+        write_error("Error: could not open file", 26);
         exit(1);
     }
     
@@ -64,6 +61,7 @@ void WriteFile(
         free(DataToWrite); 
         fclose(OutputFile);
         printf("Error writing file\n");
+        write_error("Error: could not write to file", 30);
         exit(1);
     }   
     
@@ -75,6 +73,7 @@ void DeleteFile(char *Filename)
 {
     if (remove(Filename)){   
         printf("Unable to delete the file\n");
+        write_error("Error: Unable to delete the file", 32);
         exit(1);
     }
 }  
@@ -100,7 +99,7 @@ F_DATA *ReadFile(char *InputFilename, int ind){
 
             free(FileBuf);
             printf("Error: could not open or File does not exist %s\n", InputFilename);
-            perror("fopen");
+            write_error("Error: could not open or File does not exist", 44);
             exit(1);
         }
     }
@@ -111,6 +110,7 @@ F_DATA *ReadFile(char *InputFilename, int ind){
         free(FileBuf);
         fclose(File);
         printf("Error: exceeded currently supported maximum file size\n");
+        write_error("Error: exceeded currently supported maximum file size", 53);
         exit(1);
     }
 
@@ -194,7 +194,8 @@ BYTE *gen_iv(){
     
     if ((File = fopen("/dev/urandom", "r")) == NULL){
 
-        printf("Error: could not open dev/urandom \n");
+        printf("Error: could not open dev/urandom folder\n");
+        write_error("Error: could not open dev/urandom folder", 40);
         exit(1);
     }
 
@@ -366,7 +367,7 @@ void ValidateHMAC(F_DATA *Data, BYTE *key1){
         free(Data->Data);
         free(Data);
         printf("either data has been tampered or password is incorrect\nCannot validate HMAC from file\n");
-        write_error("either data has been tampered or password is incorrect\nCannot validate HMAC from file\n", 86);
+        write_error("Error: either data has been tampered or password is incorrect\nCannot validate HMAC from file", 92);
         exit(1);
 
     }
@@ -380,7 +381,7 @@ void ValidateHMAC(F_DATA *Data, BYTE *key1){
         free(Data);
         free(M);
         printf("either data has been tampered or password is incorrect\nCannot validate HMAC from file\n");
-        write_error("either data has been tampered or password is incorrect\nCannot validate HMAC from file\n", 86);
+        write_error("Error: either data has been tampered or password is incorrect\nCannot validate HMAC from file", 92);
         exit(1);
 
     }
@@ -525,6 +526,7 @@ int find_pos(F_DATA *ArchData, char *InputFilename){
             free(ArchData->Data);
             free(ArchData);
             printf("Error: the archive has some error, data could be tampered\n");
+            write_error("Error: the archive has some error, data could be tampered", 56);
             exit(1);
             
         }
@@ -535,6 +537,7 @@ int find_pos(F_DATA *ArchData, char *InputFilename){
             free(ArchData->Data);
             free(ArchData);
             printf("Error: the archive has some error, data could be tampered\n");
+            write_error("Error: the archive has some error, data could be tampered", 56);
             exit(1);
 
         }
@@ -583,6 +586,7 @@ int find_beg(F_DATA *ArchData, char *InputFilename){
         free(ArchData->Data);
         free(ArchData);
         printf("File Name Not found!\n");
+        write_error("Error: File Name Not found!", 27);
         exit(1);
     }
     //printf("pos is %i\n", pos);
@@ -604,6 +608,7 @@ int find_end(F_DATA *ArchData, char *InputFilename){
         free(ArchData->Data);
         free(ArchData);
         printf("File Name Not found!\n");
+        write_error("Error: File Name Not found!", 27);
         exit(1);
     }
     //printf("pos is %i\n", pos);
@@ -614,9 +619,4 @@ int find_end(F_DATA *ArchData, char *InputFilename){
 
 
 }
-
-
-
-
-
 

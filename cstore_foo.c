@@ -30,6 +30,7 @@ void EncodeFile(char *ArchFilename, char *InputFilename, char *pwd) {
             free(ArchData->Data);
             free(ArchData);
             printf("File already exists!\n");
+            write_error("Error: File already exists!", 27);
             exit(1);
         }
     }
@@ -71,15 +72,14 @@ void DecodeFile(char *ArchFilename, char *InputFilename, char *pwd) {
     //validate HMAC from Arch
     if(ArchData->Length){
         ValidateHMAC(ArchData, key1);
-    }
-
-    
+    }    
 
     //obtain position in ArchData
     pos = find_pos(ArchData, InputFilename);
 
     if(pos<0){
         printf("File Name Not found!\n");
+        write_error("Error: File Name Not found!", 27);
         exit(1);
     }
         
@@ -116,6 +116,7 @@ int DeleteFromArch(char *ArchFilename, char *InputFilename, char *pwd) {
         free(ArchData->Data);
         free(ArchData);
         printf("Error: cannot delete from empty archive\n");
+        write_error("Error: cannot delete from empty archive!", 40);
         exit(1);
     }
 
@@ -216,6 +217,7 @@ int ListFiles(char *ArchFilename) {
         free(ArchData->Data);
         free(ArchData);       
         printf("Error! opening file");
+        write_error("Error: opening file", 19);
         exit(1);
 
     }
@@ -244,6 +246,7 @@ int ListFiles(char *ArchFilename) {
             free(ArchData); 
             fclose(File);
             printf("Error: the archive has some error\n");
+            write_error("Error: the archive has some error", 33);
             exit(1);
         }
 

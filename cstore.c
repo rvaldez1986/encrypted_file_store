@@ -34,6 +34,7 @@ int main(int argc, char *argv[] ) {
             }else{
 
                 printf("arguments incorrectly passed to the program\n");
+                write_error("Error: arguments incorrectly passed to the program", 50);
                 exit(1);
             }            
 
@@ -48,6 +49,7 @@ int main(int argc, char *argv[] ) {
             }else{
 
                 printf("arguments incorrectly passed to the program\n");
+                write_error("Error: arguments incorrectly passed to the program", 50);
                 exit(1);
             }             
 
@@ -68,6 +70,7 @@ int main(int argc, char *argv[] ) {
             }else{
 
                 printf("arguments incorrectly passed to the program\n");
+                write_error("Error: arguments incorrectly passed to the program", 50);
                 exit(1);
             }            
             
@@ -88,18 +91,21 @@ int main(int argc, char *argv[] ) {
             }else{
 
                 printf("arguments incorrectly passed to the program\n");
+                write_error("Error: arguments incorrectly passed to the program", 50);
                 exit(1);
             }          
             
         }else{
 
             printf("this command is not implemented in the file store program\n");
+            write_error("Error: arguments incorrectly passed to the program", 50);
             exit(1);
         }
         
     }else{
 
         printf("arguments incorrectly passed to the program\n");
+        write_error("Error: arguments incorrectly passed to the program", 50);
         exit(1);
     }    
      
