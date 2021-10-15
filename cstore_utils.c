@@ -298,8 +298,7 @@ F_DATA *EncodeData(F_DATA *DataToEncode, BYTE *key0, BYTE *key1, int keysize, BY
     while(ti<nl){
         *(new_data+ti) = PAD_BYTE;
         ti++;
-    } 
-
+    }
 
     enc_buf = my_cbc_encrypt(new_data, nl, key0, keysize, iv);
 
@@ -357,6 +356,10 @@ F_DATA *DecodeData(F_DATA *DataToDecode, BYTE *key0, BYTE *key1, int keysize, BY
     //HMAC validated
     ol = DataToDecode->Length;
     dt_holder = DataToDecode->Data;
+
+    enc_buf = my_cbc_decrypt(dt_holder, ol, key0, keysize, iv);
+
+    /**
     
     //malloc memory to store decoded 
     enc_buf = (BYTE *) malloc (ol);
@@ -372,6 +375,8 @@ F_DATA *DecodeData(F_DATA *DataToDecode, BYTE *key0, BYTE *key1, int keysize, BY
 		memcpy(enc_buf + idx * AES_BLOCK_SIZE, buf_out, AES_BLOCK_SIZE);
 		memcpy(iv_buf, buf_in, AES_BLOCK_SIZE);
 	}
+
+    **/
 
     //free DataToDecode
     free(DataToDecode->Data);
