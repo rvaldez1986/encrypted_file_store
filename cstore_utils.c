@@ -622,7 +622,36 @@ int find_end(F_DATA *ArchData, char *InputFilename){
 }
 
 char *my_cbc_encrypt(char *plaintext, int size, BYTE *key, int keysize, BYTE *iv){
-    int n_blocks;
+    char *buf0, *buf1, *res;
+    int ind;
+    WORD key_schedule[60];
+
+    ind = 0;
+    buf0 = (BYTE *) malloc(AES_BLOCK_SIZE); //AES = 16
+    buf1 = (BYTE *) malloc(AES_BLOCK_SIZE); //AES = 16
+    res = (BYTE *) malloc(size); //size
+
+    aes_key_setup(key, key_schedule, keysize);
+    memcpy(buf0, iv, AES_BLOCK_SIZE);
+    
+
+    for (ind = 0; ind < size; ind+=AES_BLOCK_SIZE) {
+
+        memcpy(buf1, plaintext+ind, AES_BLOCK_SIZE); //out, in (buf1 has plaintext data)
+        xor(buf1, buf0, AES_BLOCK_SIZE);  //in, out  (buf0 has info xor of iv and plaintext)
+        aes_encrypt(buf0, buf1, key_schedule, keysize);  //in, out  (buf1 has the info, encrypted)
+        memcpy(res+ind, buf1, AES_BLOCK_SIZE); //out, in (res has the result)       
+        memcpy(buf0, buf1, AES_BLOCK_SIZE); //out, in (res has the result) 
+        
+    }    
+
+    free(buf0);
+    free(buf1);
+    return res;    
+}
+
+
+char *my_cbc_decrypt(char *plaintext, int size, BYTE *key, int keysize, BYTE *iv){
     char *buf0, *buf1, *res;
     int ind;
     WORD key_schedule[60];
