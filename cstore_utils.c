@@ -135,6 +135,63 @@ void xor(const BYTE *in, BYTE *out, size_t len)
 		out[idx] ^= in[idx];
 }
 
+char *my_cbc_encrypt(char *plaintext, int size, BYTE *key, int keysize, BYTE *iv){
+    char *buf0, *buf1, *res;
+    int ind;
+    WORD key_schedule[60];
+
+    ind = 0;
+    buf0 = (BYTE *) malloc(AES_BLOCK_SIZE); //AES = 16
+    buf1 = (BYTE *) malloc(AES_BLOCK_SIZE); //AES = 16
+    res = (BYTE *) malloc(size); //size
+
+    aes_key_setup(key, key_schedule, keysize);
+    memcpy(buf0, iv, AES_BLOCK_SIZE); //out, in (buf0 has iv)
+    
+
+    for (ind = 0; ind < size; ind+=AES_BLOCK_SIZE) {
+
+        memcpy(buf1, plaintext+ind, AES_BLOCK_SIZE); //out, in (buf1 has plaintext data)
+        xor(buf1, buf0, AES_BLOCK_SIZE);  //in, out  (buf0 has info xor of iv and plaintext)
+        aes_encrypt(buf0, buf1, key_schedule, keysize);  //in, out  (buf1 has the info, encrypted)
+        memcpy(res+ind, buf1, AES_BLOCK_SIZE); //out, in (res has the result)       
+        memcpy(buf0, buf1, AES_BLOCK_SIZE); //out, in (res has the result) 
+        
+    }    
+
+    free(buf0);
+    free(buf1);
+    return res;    
+}
+
+
+char *my_cbc_decrypt(char *cyphertext, int size, BYTE *key, int keysize, BYTE *iv){
+    char *buf0, *buf1, *res;
+    int ind;
+    WORD key_schedule[60];
+
+    ind = 0;
+    buf0 = (BYTE *) malloc(AES_BLOCK_SIZE); //AES = 16
+    buf1 = (BYTE *) malloc(AES_BLOCK_SIZE); //AES = 16
+    res = (BYTE *) malloc(size); //size
+
+    aes_key_setup(key, key_schedule, keysize);
+    memcpy(buf0, iv, AES_BLOCK_SIZE); //out, in (buf0 has iv)    
+
+    for (ind = 0; ind < size; ind+=AES_BLOCK_SIZE) {
+
+        aes_decrypt(cyphertext+ind, buf1, key_schedule, keysize);  //in, out  (buf1 has the info, decrypted)
+        xor(buf1, buf0, AES_BLOCK_SIZE);  //in, out  (buf0 has info xor of cyphertext and iv)        
+        memcpy(res+ind, buf0, AES_BLOCK_SIZE); //out, in (res has the result)       
+        memcpy(buf0, cyphertext+ind, AES_BLOCK_SIZE); //out, in (buf 0 has prev cyphertext) 
+        
+    }    
+
+    free(buf0);
+    free(buf1);
+    return res;    
+}
+
 BYTE *HMAC(BYTE *key, BYTE *m, size_t len){
     //len in the size of m
     //H(K or opad || H((K or ipad)||m))
@@ -243,6 +300,11 @@ F_DATA *EncodeData(F_DATA *DataToEncode, BYTE *key0, BYTE *key1, int keysize, BY
         ti++;
     } 
 
+
+    enc_buf = my_cbc_encrypt(new_data, nl, key0, keysize, iv);
+
+    /**    
+
     //malloc for holding enc_buf
     enc_buf = (BYTE *) malloc (nl);    
 
@@ -256,7 +318,9 @@ F_DATA *EncodeData(F_DATA *DataToEncode, BYTE *key0, BYTE *key1, int keysize, BY
 		aes_encrypt(buf_in, buf_out, key_schedule, keysize);
 		memcpy(enc_buf + idx * AES_BLOCK_SIZE, buf_out, AES_BLOCK_SIZE);
 		memcpy(iv_buf, buf_out, AES_BLOCK_SIZE);
-	}    
+	}   
+
+    **/ 
 
     //0 and release new data
     memset(new_data, 0, sizeof(*new_data));
@@ -621,65 +685,10 @@ int find_end(F_DATA *ArchData, char *InputFilename){
 
 }
 
-char *my_cbc_encrypt(char *plaintext, int size, BYTE *key, int keysize, BYTE *iv){
-    char *buf0, *buf1, *res;
-    int ind;
-    WORD key_schedule[60];
-
-    ind = 0;
-    buf0 = (BYTE *) malloc(AES_BLOCK_SIZE); //AES = 16
-    buf1 = (BYTE *) malloc(AES_BLOCK_SIZE); //AES = 16
-    res = (BYTE *) malloc(size); //size
-
-    aes_key_setup(key, key_schedule, keysize);
-    memcpy(buf0, iv, AES_BLOCK_SIZE); //out, in (buf0 has iv)
-    
-
-    for (ind = 0; ind < size; ind+=AES_BLOCK_SIZE) {
-
-        memcpy(buf1, plaintext+ind, AES_BLOCK_SIZE); //out, in (buf1 has plaintext data)
-        xor(buf1, buf0, AES_BLOCK_SIZE);  //in, out  (buf0 has info xor of iv and plaintext)
-        aes_encrypt(buf0, buf1, key_schedule, keysize);  //in, out  (buf1 has the info, encrypted)
-        memcpy(res+ind, buf1, AES_BLOCK_SIZE); //out, in (res has the result)       
-        memcpy(buf0, buf1, AES_BLOCK_SIZE); //out, in (res has the result) 
-        
-    }    
-
-    free(buf0);
-    free(buf1);
-    return res;    
-}
-
-
-char *my_cbc_decrypt(char *cyphertext, int size, BYTE *key, int keysize, BYTE *iv){
-    char *buf0, *buf1, *res;
-    int ind;
-    WORD key_schedule[60];
-
-    ind = 0;
-    buf0 = (BYTE *) malloc(AES_BLOCK_SIZE); //AES = 16
-    buf1 = (BYTE *) malloc(AES_BLOCK_SIZE); //AES = 16
-    res = (BYTE *) malloc(size); //size
-
-    aes_key_setup(key, key_schedule, keysize);
-    memcpy(buf0, iv, AES_BLOCK_SIZE); //out, in (buf0 has iv)    
-
-    for (ind = 0; ind < size; ind+=AES_BLOCK_SIZE) {
-
-        aes_decrypt(cyphertext+ind, buf1, key_schedule, keysize);  //in, out  (buf1 has the info, decrypted)
-        xor(buf1, buf0, AES_BLOCK_SIZE);  //in, out  (buf0 has info xor of cyphertext and iv)        
-        memcpy(res+ind, buf0, AES_BLOCK_SIZE); //out, in (res has the result)       
-        memcpy(buf0, cyphertext+ind, AES_BLOCK_SIZE); //out, in (buf 0 has prev cyphertext) 
-        
-    }    
-
-    free(buf0);
-    free(buf1);
-    return res;    
-}
 
 
 
+/**
 
 int main(int argc, char *argv[] ) {
 
@@ -707,4 +716,6 @@ int main(int argc, char *argv[] ) {
 
     
 }
+
+**/
 
