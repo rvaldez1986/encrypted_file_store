@@ -302,25 +302,6 @@ F_DATA *EncodeData(F_DATA *DataToEncode, BYTE *key0, BYTE *key1, int keysize, BY
 
     enc_buf = my_cbc_encrypt(new_data, nl, key0, keysize, iv);
 
-    /**    
-
-    //malloc for holding enc_buf
-    enc_buf = (BYTE *) malloc (nl);    
-
-    //encrypt data
-    aes_key_setup(key0, key_schedule, keysize);
-    blocks = nl / AES_BLOCK_SIZE;
-    memcpy(iv_buf, iv, AES_BLOCK_SIZE);   
-    for (idx = 0; idx < blocks; idx++) {
-	    memcpy(buf_in, new_data + idx * AES_BLOCK_SIZE, AES_BLOCK_SIZE);
-		xor(iv_buf, buf_in, AES_BLOCK_SIZE);
-		aes_encrypt(buf_in, buf_out, key_schedule, keysize);
-		memcpy(enc_buf + idx * AES_BLOCK_SIZE, buf_out, AES_BLOCK_SIZE);
-		memcpy(iv_buf, buf_out, AES_BLOCK_SIZE);
-	}   
-
-    **/ 
-
     //0 and release new data
     memset(new_data, 0, sizeof(*new_data));
     free(new_data);
@@ -358,25 +339,6 @@ F_DATA *DecodeData(F_DATA *DataToDecode, BYTE *key0, BYTE *key1, int keysize, BY
     dt_holder = DataToDecode->Data;
 
     enc_buf = my_cbc_decrypt(dt_holder, ol, key0, keysize, iv);
-
-    /**
-    
-    //malloc memory to store decoded 
-    enc_buf = (BYTE *) malloc (ol);
-    
-    //decrypt message in DataToDecode->Data, decoded moves to enc_buf
-    aes_key_setup(key0, key_schedule, keysize);
-    blocks = ol / AES_BLOCK_SIZE;
-    memcpy(iv_buf, iv, AES_BLOCK_SIZE);
-	for (idx = 0; idx < blocks; idx++) {
-		memcpy(buf_in, dt_holder + idx * AES_BLOCK_SIZE, AES_BLOCK_SIZE);
-		aes_decrypt(buf_in, buf_out, key_schedule, keysize);
-		xor(iv_buf, buf_out, AES_BLOCK_SIZE);
-		memcpy(enc_buf + idx * AES_BLOCK_SIZE, buf_out, AES_BLOCK_SIZE);
-		memcpy(iv_buf, buf_in, AES_BLOCK_SIZE);
-	}
-
-    **/
 
     //free DataToDecode
     free(DataToDecode->Data);
@@ -693,34 +655,5 @@ int find_end(F_DATA *ArchData, char *InputFilename){
 
 
 
-/**
 
-int main(int argc, char *argv[] ) {
-
-    BYTE plaintext[48] = {0x6b,0xc1,0xbe,0xe2,0x2e,0x40,0x9f,0x96,0xe9,0x3d,0x7e,0x11,0x73,0x93,0x17,0x2a,0xae,0x2d,0x8a,0x57,0x1e,0x03,0xac,0x9c,0x9e,0xb7,0x6f,0xac,0x45,0xaf,0x8e,0x51,0x6b,0xc1,0xbe,0xe2,0x2e,0x40,0x9f,0x96,0xe9,0x3d,0x7e,0x11,0x73,0x93,0x17,0x2a};
-    BYTE plaintext2[48] = {0x6b,0xc1,0xbe,0xe2,0x2e,0x40,0x9f,0x96,0xe9,0x3d,0x7e,0x11,0x73,0x93,0x17,0x2a,0xae,0x2d,0x8a,0x57,0x1e,0x03,0xac,0x9c,0x9e,0xb7,0x6f,0xac,0x45,0xaf,0x8e,0x51,0x6b,0xc1,0xbe,0xe2,0x2e,0x40,0x9f,0x96,0xe9,0x3d,0x7e,0x11,0x73,0x93,0x17,0x2a};
-    WORD key_schedule[60];
-    BYTE iv[16] = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f};
-    BYTE iv2[16] = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f};
-	BYTE key[32] = {0x60,0x3d,0xeb,0x10,0x15,0xca,0x71,0xbe,0x2b,0x73,0xae,0xf0,0x85,0x7d,0x77,0x81,0x1f,0x35,0x2c,0x07,0x3b,0x61,0x08,0xd7,0x2d,0x98,0x10,0xa3,0x09,0x14,0xdf,0xf4};
-    BYTE *enc_buf;
-    char *myres;
-
-    enc_buf = (BYTE *) malloc(48); //AES = 16
-    
-    aes_key_setup(key, key_schedule, 256); //256/8 = 32
-    
-    aes_decrypt_cbc(plaintext2, 48, enc_buf, key_schedule, 256, iv2);
-    
-    myres = my_cbc_decrypt(plaintext, 48, key, 256, iv);
-
-    printf("%i\n", memcmp(myres, enc_buf, 48));
-
-    //printf("%i\n", AES_BLOCK_SIZE);
-    free(enc_buf);
-
-    
-}
-
-**/
 
