@@ -251,10 +251,10 @@ F_DATA *EncodeData(F_DATA *DataToEncode, BYTE *key0, BYTE *key1, int keysize, BY
     blocks = nl / AES_BLOCK_SIZE;
     memcpy(iv_buf, iv, AES_BLOCK_SIZE);   
     for (idx = 0; idx < blocks; idx++) {
-	    memcpy(buf_in, &new_data[idx * AES_BLOCK_SIZE], AES_BLOCK_SIZE);
+	    memcpy(buf_in, new_data + idx * AES_BLOCK_SIZE, AES_BLOCK_SIZE);
 		xor(iv_buf, buf_in, AES_BLOCK_SIZE);
 		aes_encrypt(buf_in, buf_out, key_schedule, keysize);
-		memcpy(&enc_buf[idx * AES_BLOCK_SIZE], buf_out, AES_BLOCK_SIZE);
+		memcpy(enc_buf + idx * AES_BLOCK_SIZE, buf_out, AES_BLOCK_SIZE);
 		memcpy(iv_buf, buf_out, AES_BLOCK_SIZE);
 	}    
 
@@ -286,12 +286,13 @@ F_DATA *DecodeData(F_DATA *DataToDecode, BYTE *key0, BYTE *key1, int keysize, BY
     BYTE        buf_in[AES_BLOCK_SIZE], buf_out[AES_BLOCK_SIZE], iv_buf[AES_BLOCK_SIZE];
     F_DATA      *ClearData;  
     WORD        key_schedule[60];
-    BYTE        *enc_buf;
+    BYTE        *enc_buf, *dt_holder;
     int         blocks, idx, ol;
     char        cc;
 
     //HMAC validated
     ol = DataToDecode->Length;
+    dt_holder = DataToDecode->Data;
     
     //malloc memory to store decoded 
     enc_buf = (BYTE *) malloc (ol);
@@ -301,10 +302,10 @@ F_DATA *DecodeData(F_DATA *DataToDecode, BYTE *key0, BYTE *key1, int keysize, BY
     blocks = ol / AES_BLOCK_SIZE;
     memcpy(iv_buf, iv, AES_BLOCK_SIZE);
 	for (idx = 0; idx < blocks; idx++) {
-		memcpy(buf_in, &DataToDecode->Data[idx * AES_BLOCK_SIZE], AES_BLOCK_SIZE);
+		memcpy(buf_in, dt_holder + idx * AES_BLOCK_SIZE, AES_BLOCK_SIZE);
 		aes_decrypt(buf_in, buf_out, key_schedule, keysize);
 		xor(iv_buf, buf_out, AES_BLOCK_SIZE);
-		memcpy(&enc_buf[idx * AES_BLOCK_SIZE], buf_out, AES_BLOCK_SIZE);
+		memcpy(enc_buf + idx * AES_BLOCK_SIZE, buf_out, AES_BLOCK_SIZE);
 		memcpy(iv_buf, buf_in, AES_BLOCK_SIZE);
 	}
 
