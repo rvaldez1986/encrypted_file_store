@@ -632,7 +632,7 @@ char *my_cbc_encrypt(char *plaintext, int size, BYTE *key, int keysize, BYTE *iv
     res = (BYTE *) malloc(size); //size
 
     aes_key_setup(key, key_schedule, keysize);
-    memcpy(buf0, iv, AES_BLOCK_SIZE);
+    memcpy(buf0, iv, AES_BLOCK_SIZE); //out, in (buf0 has iv)
     
 
     for (ind = 0; ind < size; ind+=AES_BLOCK_SIZE) {
@@ -651,7 +651,7 @@ char *my_cbc_encrypt(char *plaintext, int size, BYTE *key, int keysize, BYTE *iv
 }
 
 
-char *my_cbc_decrypt(char *plaintext, int size, BYTE *key, int keysize, BYTE *iv){
+char *my_cbc_decrypt(char *cyphertext, int size, BYTE *key, int keysize, BYTE *iv){
     char *buf0, *buf1, *res;
     int ind;
     WORD key_schedule[60];
@@ -662,16 +662,14 @@ char *my_cbc_decrypt(char *plaintext, int size, BYTE *key, int keysize, BYTE *iv
     res = (BYTE *) malloc(size); //size
 
     aes_key_setup(key, key_schedule, keysize);
-    memcpy(buf0, iv, AES_BLOCK_SIZE);
-    
+    memcpy(buf0, iv, AES_BLOCK_SIZE); //out, in (buf0 has iv)    
 
     for (ind = 0; ind < size; ind+=AES_BLOCK_SIZE) {
 
-        memcpy(buf1, plaintext+ind, AES_BLOCK_SIZE); //out, in (buf1 has plaintext data)
-        xor(buf1, buf0, AES_BLOCK_SIZE);  //in, out  (buf0 has info xor of iv and plaintext)
-        aes_encrypt(buf0, buf1, key_schedule, keysize);  //in, out  (buf1 has the info, encrypted)
-        memcpy(res+ind, buf1, AES_BLOCK_SIZE); //out, in (res has the result)       
-        memcpy(buf0, buf1, AES_BLOCK_SIZE); //out, in (res has the result) 
+        aes_decrypt(cyphertext+ind, buf1, key_schedule, keysize);  //in, out  (buf1 has the info, decrypted)
+        xor(buf1, buf0, AES_BLOCK_SIZE);  //in, out  (buf0 has info xor of cyphertext and iv)        
+        memcpy(res+ind, buf0, AES_BLOCK_SIZE); //out, in (res has the result)       
+        memcpy(buf0, cyphertext+ind, AES_BLOCK_SIZE); //out, in (buf 0 has prev cyphertext) 
         
     }    
 
@@ -698,9 +696,9 @@ int main(int argc, char *argv[] ) {
     
     aes_key_setup(key, key_schedule, 256); //256/8 = 32
     
-    aes_encrypt_cbc(plaintext2, 48, enc_buf, key_schedule, 256, iv2);
+    aes_decrypt_cbc(plaintext2, 48, enc_buf, key_schedule, 256, iv2);
     
-    myres = my_cbc_encrypt(plaintext, 48, key, 256, iv);
+    myres = my_cbc_decrypt(plaintext, 48, key, 256, iv);
 
     printf("%i\n", memcmp(myres, enc_buf, 48));
 
