@@ -29,7 +29,7 @@ void EncodeFile(char *ArchFilename, char *InputFilename, char *pwd) {
         if(pos>=0){
             free(ArchData->Data);
             free(ArchData);
-            printf("File already exists!\n");
+            //printf("File already exists!\n");
             write_error("Error: File already exists!", 27);
             exit(1);
         }
@@ -78,7 +78,7 @@ void DecodeFile(char *ArchFilename, char *InputFilename, char *pwd) {
     pos = find_pos(ArchData, InputFilename);
 
     if(pos<0){
-        printf("File Name Not found!\n");
+        //printf("File Name Not found!\n");
         write_error("Error: File Name Not found!", 27);
         exit(1);
     }
@@ -115,7 +115,7 @@ int DeleteFromArch(char *ArchFilename, char *InputFilename, char *pwd) {
     if(ArchData->Length == 0){
         free(ArchData->Data);
         free(ArchData);
-        printf("Error: cannot delete from empty archive\n");
+        //printf("Error: cannot delete from empty archive\n");
         write_error("Error: cannot delete from empty archive!", 40);
         exit(1);
     }
@@ -216,7 +216,7 @@ int ListFiles(char *ArchFilename) {
         //free ArchData
         free(ArchData->Data);
         free(ArchData);       
-        printf("Error! opening file");
+        //printf("Error! opening file");
         write_error("Error: opening file", 19);
         exit(1);
 
@@ -228,7 +228,7 @@ int ListFiles(char *ArchFilename) {
         free(ArchData); 
         fclose(File);
         fwrite("File empty", sizeof(char), 10, File);
-        printf("File empty\n"); 
+        //printf("File empty\n"); 
         return 0;       
     }
 
@@ -245,7 +245,7 @@ int ListFiles(char *ArchFilename) {
             free(ArchData->Data);
             free(ArchData); 
             fclose(File);
-            printf("Error: the archive has some error\n");
+            //printf("Error: the archive has some error\n");
             write_error("Error: the archive has some error", 33);
             exit(1);
         }
@@ -253,7 +253,7 @@ int ListFiles(char *ArchFilename) {
         place_holder = (char *) malloc (ph+1);
         memcpy(place_holder, &ArchData->Data[beg+4], ph);
         *(place_holder+ph) = '\0';
-        printf("found %s\n", place_holder);
+        //printf("found %s\n", place_holder);
         *(place_holder+ph) = '\n';
         fwrite(place_holder, sizeof(char), ph+1, File);
 
