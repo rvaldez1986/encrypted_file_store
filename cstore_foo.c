@@ -55,7 +55,6 @@ void EncodeFile(char *ArchFilename, char *InputFilename, char *pwd) {
 
 void DecodeFile(char *ArchFilename, char *InputFilename, char *pwd) {  
     F_DATA          *ClearData, *ArchData, *EncData;          
-    char            OutputFilename[PATH_MAX];
     BYTE            iv[IV_LEN];
     BYTE            *key0, *key1;
     int             pos;

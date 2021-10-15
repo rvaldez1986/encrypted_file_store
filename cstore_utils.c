@@ -9,7 +9,7 @@
 #define PAD_BYTE    0x00
 #define AES_BLOCK_SIZE 16
 #define IV_LEN 16
-#define PATH_MAX                 256        // for simplification
+#define PATH_MAX                 20        // for simplification
 
 
 typedef struct f_data{
